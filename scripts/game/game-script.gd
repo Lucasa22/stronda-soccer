@@ -1,53 +1,164 @@
 extends Node2D
 
-# Estados do jogo
-enum GameState { MENU, PLAYING, PAUSED, GOAL_SCORED }
-var current_state := GameState.PLAYING
-
-# Pontuação
-var score_player1 := 0
-var score_player2 := 0
-
-# Referências
+# Cena simples para testar o jogo
 @onready var arena := $Arena
-@onready var player := $Player
+@onready var players := $Players
 @onready var ball := $Ball
-@onready var camera := $Camera2D
 @onready var ui := $UI
+@onready var camera := $Camera2D
 
-# Debug
-var debug_mode := true
+# Variáveis do jogo
+var field_width := 800
+var field_height := 600
 
 func _ready():
+	print("Jogo iniciado!")
+	
 	# Configurar câmera
 	setup_camera()
 	
-	# Inicializar posições
-	reset_positions()
+	# Criar campo visual
+	create_field()
 	
-	# Debug info
-	if debug_mode:
-		create_debug_display()
-
-func _process(delta):
-	# Atualizar câmera
-	update_camera()
+	# Criar jogadores
+	create_players()
 	
-	# Input global
-	handle_global_input()
+	# Criar bola
+	create_ball()
 	
-	# Atualizar UI
-	update_ui()
+	# Criar UI básica
+	create_ui()
 
 func setup_camera():
-	# Configurar câmera isométrica fixa
-	camera.position = Vector2(GameConstants.FIELD_WIDTH / 2, GameConstants.FIELD_HEIGHT / 2)
-	camera.zoom = Vector2(1.0, 1.0)
+	camera.position = Vector2(field_width / 2, field_height / 2)
+	camera.zoom = Vector2(0.8, 0.8)
+
+func create_field():
+	# Criar fundo do campo
+	var field_bg = ColorRect.new()
+	field_bg.color = Color(0.2, 0.8, 0.2, 1.0)  # Verde
+	field_bg.size = Vector2(field_width, field_height)
+	field_bg.position = Vector2(0, 0)
+	arena.add_child(field_bg)
 	
-	# Limites da câmera
-	camera.limit_left = 0
-	camera.limit_right = int(GameConstants.FIELD_WIDTH)
-	camera.limit_top = 0
+	# Linha central
+	var center_line = ColorRect.new()
+	center_line.color = Color.WHITE
+	center_line.size = Vector2(4, field_height)
+	center_line.position = Vector2(field_width / 2 - 2, 0)
+	arena.add_child(center_line)
+	
+	# Círculo central
+	var center_circle = create_circle(Vector2(field_width / 2, field_height / 2), 50, Color.WHITE)
+	arena.add_child(center_circle)
+	
+	# Gols
+	create_goals()
+
+func create_circle(pos: Vector2, radius: float, color: Color) -> Node2D:
+	var circle = Node2D.new()
+	circle.position = pos
+	
+	# Criar círculo usando Line2D
+	var line = Line2D.new()
+	line.width = 3
+	line.default_color = color
+	
+	var points = []
+	for i in range(33):  # 32 pontos + 1 para fechar
+		var angle = i * TAU / 32
+		var point = Vector2(cos(angle), sin(angle)) * radius
+		points.append(point)
+	
+	line.points = PackedVector2Array(points)
+	circle.add_child(line)
+	
+	return circle
+
+func create_goals():
+	var goal_width = 120
+	var goal_height = 20
+	
+	# Gol esquerdo
+	var left_goal = ColorRect.new()
+	left_goal.color = Color.YELLOW
+	left_goal.size = Vector2(goal_width, goal_height)
+	left_goal.position = Vector2(-goal_width, field_height / 2 - goal_height / 2)
+	arena.add_child(left_goal)
+	
+	# Gol direito
+	var right_goal = ColorRect.new()
+	right_goal.color = Color.YELLOW
+	right_goal.size = Vector2(goal_width, goal_height)
+	right_goal.position = Vector2(field_width, field_height / 2 - goal_height / 2)
+	arena.add_child(right_goal)
+
+func create_players():
+	# Jogador 1 (Azul)
+	var player1 = create_player(Vector2(field_width / 4, field_height / 2), Color.BLUE, "P1")
+	players.add_child(player1)
+	
+	# Jogador 2 (Vermelho)
+	var player2 = create_player(Vector2(3 * field_width / 4, field_height / 2), Color.RED, "P2")
+	players.add_child(player2)
+
+func create_player(pos: Vector2, color: Color, name: String) -> Node2D:
+	var player = Node2D.new()
+	player.position = pos
+	
+	# Sprite do jogador
+	var sprite = ColorRect.new()
+	sprite.color = color
+	sprite.size = Vector2(30, 40)
+	sprite.position = Vector2(-15, -20)
+	player.add_child(sprite)
+	
+	# Nome do jogador
+	var label = Label.new()
+	label.text = name
+	label.position = Vector2(-10, -35)
+	label.add_theme_color_override("font_color", Color.WHITE)
+	player.add_child(label)
+	
+	return player
+
+func create_ball():
+	var ball_sprite = ColorRect.new()
+	ball_sprite.color = Color.WHITE
+	ball_sprite.size = Vector2(20, 20)
+	ball_sprite.position = Vector2(field_width / 2 - 10, field_height / 2 - 10)
+	ball.add_child(ball_sprite)
+
+func create_ui():
+	# Placar
+	var score_label = Label.new()
+	score_label.text = "PLACAR: 0 - 0"
+	score_label.position = Vector2(10, 10)
+	score_label.add_theme_color_override("font_color", Color.WHITE)
+	score_label.add_theme_font_size_override("font_size", 24)
+	ui.add_child(score_label)
+	
+	# Instruções
+	var instructions = Label.new()
+	instructions.text = "Use WASD para mover - Pressione ESC para sair"
+	instructions.position = Vector2(10, 50)
+	instructions.add_theme_color_override("font_color", Color.WHITE)
+	ui.add_child(instructions)
+
+func _process(delta):
+	# Input básico
+	if Input.is_action_just_pressed("ui_cancel"):
+		get_tree().quit()
+
+func _input(event):
+	if event is InputEventKey and event.pressed:
+		match event.keycode:
+			KEY_ESCAPE:
+				get_tree().quit()
+			KEY_R:
+				get_tree().reload_current_scene()
+			KEY_P:
+				print("Jogo pausado/despausado")
 	camera.limit_bottom = int(GameConstants.FIELD_HEIGHT)
 
 func update_camera():
