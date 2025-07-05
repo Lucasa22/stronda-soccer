@@ -1,0 +1,16 @@
+[gd_scene load_steps=2 format=3 uid="uid://d5k8m2p9q1r3s"]
+
+[ext_resource type="Script" path="res://scripts/physics/ball-script.gd" id="1_3o6ig"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_1"]
+radius = 16.0
+
+[node name="Ball" type="RigidBody2D"]
+script = ExtResource("1_3o6ig")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+modulate = Color(1, 1, 1, 1)
+scale = Vector2(32, 32)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_1")
