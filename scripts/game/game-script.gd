@@ -157,69 +157,52 @@ func create_goals():
 	var goal_material = StandardMaterial3D.new()
 	goal_material.albedo_color = Color.YELLOW
 	
-	# Gol esquerdo (estrutura 3D)
-	var left_goal = Node3D.new()
-	left_goal.position = Vector3(-goal_width/2, 0, field_height / 2)
-	arena.add_child(left_goal)
-	
-	# Base do gol
-	var left_base = CSGBox3D.new()
-	left_base.size = Vector3(goal_width, 1, goal_height)
-	left_base.position = Vector3(0, 0, 0)
-	left_base.material = goal_material
-	left_goal.add_child(left_base)
-	
-	# Barra superior
-	var left_top = CSGBox3D.new()
-	left_top.size = Vector3(goal_width, 1, 1)
-	left_top.position = Vector3(0, goal_height, 0)
-	left_top.material = goal_material
-	left_goal.add_child(left_top)
-	
-	# Postes laterais
-	var left_post1 = CSGBox3D.new()
-	left_post1.size = Vector3(1, goal_height, 1)
-	left_post1.position = Vector3(-goal_width/2, goal_height/2, 0)
-	left_post1.material = goal_material
-	left_goal.add_child(left_post1)
-	
-	var left_post2 = CSGBox3D.new()
-	left_post2.size = Vector3(1, goal_height, 1)
-	left_post2.position = Vector3(goal_width/2, goal_height/2, 0)
-	left_post2.material = goal_material
-	left_goal.add_child(left_post2)
-	
-	# Gol direito (estrutura 3D)
-	var right_goal = Node3D.new()
-	right_goal.position = Vector3(field_width + goal_width/2, 0, field_height / 2)
-	arena.add_child(right_goal)
-	
-	# Base do gol
-	var right_base = CSGBox3D.new()
-	right_base.size = Vector3(goal_width, 1, goal_height)
-	right_base.position = Vector3(0, 0, 0)
-	right_base.material = goal_material
-	right_goal.add_child(right_base)
-	
-	# Barra superior
-	var right_top = CSGBox3D.new()
-	right_top.size = Vector3(goal_width, 1, 1)
-	right_top.position = Vector3(0, goal_height, 0)
-	right_top.material = goal_material
-	right_goal.add_child(right_top)
-	
-	# Postes laterais
-	var right_post1 = CSGBox3D.new()
-	right_post1.size = Vector3(1, goal_height, 1)
-	right_post1.position = Vector3(-goal_width/2, goal_height/2, 0)
-	right_post1.material = goal_material
-	right_goal.add_child(right_post1)
-	
-	var right_post2 = CSGBox3D.new()
-	right_post2.size = Vector3(1, goal_height, 1)
-	right_post2.position = Vector3(goal_width/2, goal_height/2, 0)
-	right_post2.material = goal_material
-	right_goal.add_child(right_post2)
+	# Gol esquerdo (Area3D para detecção)
+	var left_goal_area = Area3D.new()
+	left_goal_area.name = "Goal_Team1" # Identificador para o time 1 (bola entra aqui, time 2 marca)
+	left_goal_area.position = Vector3(0, GameConstants.GOAL_HEIGHT / 2, field_height / 2) # Ajustar posição X para o limite do campo
+	left_goal_area.collision_layer = 0 # Não colide com nada
+	left_goal_area.collision_mask = GameConstants.LAYER_BALL # Detecta apenas a bola
+	left_goal_area.add_to_group("goals")
+
+	var left_goal_shape = BoxShape3D.new()
+	left_goal_shape.size = Vector3(GameConstants.WALL_THICKNESS, GameConstants.GOAL_HEIGHT, GameConstants.GOAL_WIDTH)
+
+	var left_collision_shape = CollisionShape3D.new()
+	left_collision_shape.shape = left_goal_shape
+	left_goal_area.add_child(left_collision_shape)
+	arena.add_child(left_goal_area)
+
+	# Visualização do Gol Esquerdo (usando CSGBox3D)
+	var left_goal_visual = CSGBox3D.new()
+	left_goal_visual.size = Vector3(GameConstants.WALL_THICKNESS, GameConstants.GOAL_HEIGHT, GameConstants.GOAL_WIDTH)
+	left_goal_visual.position = left_goal_area.position
+	left_goal_visual.material = goal_material
+	arena.add_child(left_goal_visual)
+
+	# Gol direito (Area3D para detecção)
+	var right_goal_area = Area3D.new()
+	right_goal_area.name = "Goal_Team2" # Identificador para o time 2 (bola entra aqui, time 1 marca)
+	right_goal_area.position = Vector3(field_width, GameConstants.GOAL_HEIGHT / 2, field_height / 2) # Ajustar posição X para o limite do campo
+	right_goal_area.collision_layer = 0 # Não colide com nada
+	right_goal_area.collision_mask = GameConstants.LAYER_BALL # Detecta apenas a bola
+	right_goal_area.add_to_group("goals")
+
+	var right_goal_shape = BoxShape3D.new()
+	right_goal_shape.size = Vector3(GameConstants.WALL_THICKNESS, GameConstants.GOAL_HEIGHT, GameConstants.GOAL_WIDTH)
+
+	var right_collision_shape = CollisionShape3D.new()
+	right_collision_shape.shape = right_goal_shape
+	right_goal_area.add_child(right_collision_shape)
+	arena.add_child(right_goal_area)
+
+	# Visualização do Gol Direito (usando CSGBox3D)
+	var right_goal_visual = CSGBox3D.new()
+	right_goal_visual.size = Vector3(GameConstants.WALL_THICKNESS, GameConstants.GOAL_HEIGHT, GameConstants.GOAL_WIDTH)
+	right_goal_visual.position = right_goal_area.position
+	right_goal_visual.material = goal_material
+	arena.add_child(right_goal_visual)
+
 
 func create_players():
 	# Instanciar cena do jogador 3D
@@ -283,6 +266,10 @@ func create_ball():
 		if child.has_method("set_ball_reference"):
 			child.set_ball_reference(ball_instance)
 
+	# Conectar sinal de gol da bola
+	if not ball_instance.is_connected("goal_scored_signal", Callable(self, "_on_ball_goal_scored")):
+		ball_instance.connect("goal_scored_signal", Callable(self, "_on_ball_goal_scored"))
+
 func create_ui():
 	# Placar
 	var score_label = Label.new()
@@ -302,44 +289,63 @@ func create_ui():
 
 func _process(_delta):
 	# Input básico
-	if Input.is_action_just_pressed("ui_cancel"):
-		get_tree().quit()
+	if Input.is_action_just_pressed("ui_cancel"): # Geralmente ESC
+		get_tree().quit() # Sair do jogo
 	
-	# Controles do jogador
-	handle_player_input()
+	# Processar inputs dos jogadores
+	handle_players_input()
 
 func handle_player_input():
-	if not player:
-		return
-	
-	# Input de movimento (WASD)
-	var input_dir = Vector3()
-	
-	if Input.is_action_pressed("ui_left") or Input.is_key_pressed(KEY_A):
-		input_dir.x -= 1
-	if Input.is_action_pressed("ui_right") or Input.is_key_pressed(KEY_D):
-		input_dir.x += 1
-	if Input.is_action_pressed("ui_up") or Input.is_key_pressed(KEY_W):
-		input_dir.z -= 1
-	if Input.is_action_pressed("ui_down") or Input.is_key_pressed(KEY_S):
-		input_dir.z += 1
-	
-	# Input de sprint (Shift)
-	var sprint = Input.is_key_pressed(KEY_SHIFT)
-	
-	# Input de pulo (Espaço)
-	var jump = Input.is_action_just_pressed("ui_accept") or Input.is_key_pressed(KEY_SPACE)
-	
-	# Input de chute (E)
-	var kick = Input.is_key_pressed(KEY_E)
-	
-	# Normalizar direção de movimento
-	if input_dir.length() > 0:
-		input_dir = input_dir.normalized()
-	
-	# Aplicar input ao jogador
-	if player.has_method("set_input"):
-		player.set_input(input_dir, sprint, jump, kick)
+	# Esta função está obsoleta e seu conteúdo foi movido/integrado para handle_players_input()
+	# Pode ser removida ou deixada vazia.
+	pass
+
+func handle_players_input():
+	for p_node in players.get_children():
+		if not p_node is Player3D:
+			continue
+
+		var input_dir = Vector3()
+		var sprint = false
+		var jump = false
+		var kick = false
+
+		if p_node.player_id == 1:
+			if Input.is_action_pressed("ui_left"): input_dir.x -= 1
+			if Input.is_action_pressed("ui_right"): input_dir.x += 1
+			if Input.is_action_pressed("ui_up"): input_dir.z -= 1
+			if Input.is_action_pressed("ui_down"): input_dir.z += 1
+
+			# Assumindo que você criou ações de input chamadas "sprint", "kick"
+			# Se não, substitua por Input.is_key_pressed(KEY_SHIFT), Input.is_key_pressed(KEY_E) etc.
+			sprint = Input.is_action_pressed("sprint_p1")
+			jump = Input.is_action_just_pressed("jump_p1")
+			kick = Input.is_action_pressed("kick_p1")
+
+		elif p_node.player_id == 2:
+			if Input.is_action_pressed("p2_move_left"): input_dir.x -= 1
+			if Input.is_action_pressed("p2_move_right"): input_dir.x += 1
+			if Input.is_action_pressed("p2_move_forward"): input_dir.z -= 1
+			if Input.is_action_pressed("p2_move_back"): input_dir.z += 1
+
+			sprint = Input.is_action_pressed("p2_sprint")
+			jump = Input.is_action_just_pressed("p2_jump")
+			kick = Input.is_action_pressed("p2_kick")
+
+		# Normalizar direção de movimento (apenas X e Z)
+		var horizontal_input = Vector2(input_dir.x, input_dir.z)
+		if horizontal_input.length_squared() > 0:
+			horizontal_input = horizontal_input.normalized()
+			input_dir.x = horizontal_input.x
+			input_dir.z = horizontal_input.y # Lembre-se que o Z é invertido para o input
+
+		# O componente Y do input_dir é usado pelo player_controller para o pulo
+		# Não é parte da direção normalizada de movimento horizontal.
+		# Ele é definido como 1 se jump for true, 0 caso contrário, dentro do player.set_input
+
+		if p_node.has_method("set_input"):
+			p_node.set_input(input_dir, sprint, jump, kick)
+
 
 func _input(event):
 	if event is InputEventKey and event.pressed:
@@ -393,14 +399,26 @@ func toggle_pause():
 		current_state = GameConstants.GameState.PLAYING
 		get_tree().paused = false
 
-func on_goal_scored(team: int):
-	current_state = GameConstants.GameState.GOAL_SCORED
-	
-	# Atualizar pontuação
-	if team == 1:
-		score_player1 += 1
+func _on_ball_goal_scored(goal_name: String):
+	print("game-script.gd recebeu sinal de gol: ", goal_name)
+	var team_scored_against = -1
+	if "1" in goal_name: # Assumindo que o gol do time 1 se chama "Goal_Team1" ou similar
+		team_scored_against = 1
+		score_player2 += 1 # Time 2 marcou
+		on_goal_scored_event(2) # Evento para time 2
+	elif "2" in goal_name: # Assumindo que o gol do time 2 se chama "Goal_Team2" ou similar
+		team_scored_against = 2
+		score_player1 += 1 # Time 1 marcou
+		on_goal_scored_event(1) # Evento para time 1
 	else:
-		score_player2 += 1
+		print("Nome do gol não reconhecido: ", goal_name)
+		return
+
+	update_ui()
+
+func on_goal_scored_event(team_that_scored: int):
+	current_state = GameConstants.GameState.GOAL_SCORED
+	print("Time %d marcou!" % team_that_scored)
 	
 	# Feedback visual
 	create_goal_celebration()

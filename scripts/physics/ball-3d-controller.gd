@@ -88,10 +88,13 @@ func apply_kick_force(direction: Vector3, force: float):
 
 func _on_body_entered(body):
 	# Detectar colisões com gols ou outros objetos
-	if body.is_in_group("goals"):
+	if body.is_in_group("goals") and body is Area3D:
 		handle_goal_collision(body)
 
-func handle_goal_collision(_goal):
+func handle_goal_collision(goal_node: Area3D): # Especificar o tipo do parâmetro
 	# Lógica para quando a bola entra no gol
-	print("Gol!")
-	# Aqui você pode emitir um sinal para o gerenciador do jogo
+	print("Bola entrou na Area3D do gol: ", goal_node.name)
+	# Emitir um sinal para o gerenciador do jogo
+	emit_signal("goal_scored_signal", goal_node.name)
+
+signal goal_scored_signal(goal_name: String)
