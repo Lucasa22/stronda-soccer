@@ -43,9 +43,9 @@ func _ready():
 func setup_lighting():
 	# Luz direcional principal (sol)
 	var sun = DirectionalLight3D.new()
-	sun.position = Vector3(field_width / 2, 300, field_height / 2)
+	sun.position = Vector3(field_width / 2, GameConstants.CAMERA_HEIGHT, field_height / 2)
 	sun.rotation_degrees = Vector3(-45, -45, 0)
-	sun.light_energy = 1.0
+	sun.light_energy = GameConstants.SUN_ENERGY
 	sun.shadow_enabled = true
 	add_child(sun)
 	
@@ -53,15 +53,15 @@ func setup_lighting():
 	var env = WorldEnvironment.new()
 	var environment = Environment.new()
 	environment.ambient_light_color = Color(0.1, 0.1, 0.1)
-	environment.ambient_light_energy = 0.5
+	environment.ambient_light_energy = GameConstants.AMBIENT_ENERGY
 	env.environment = environment
 	add_child(env)
 
 func setup_camera():
-	# Posição elevada para visualização do campo em 3D
-	camera.position = Vector3(field_width / 2, 300, field_height)
-	camera.rotation_degrees = Vector3(-60, 0, 0)
-	camera.fov = 45
+	# Posição elevada para visualização do campo em 3D usando constantes
+	camera.position = Vector3(GameConstants.FIELD_WIDTH / 2, GameConstants.CAMERA_HEIGHT, GameConstants.FIELD_DEPTH + GameConstants.CAMERA_DISTANCE)
+	camera.rotation_degrees = Vector3(GameConstants.CAMERA_ANGLE, 0, 0)
+	camera.fov = GameConstants.CAMERA_FOV
 	camera.current = true
 
 func create_field():
@@ -222,13 +222,29 @@ func create_goals():
 	right_goal.add_child(right_post2)
 
 func create_players():
+	# Instanciar cena do jogador 3D
+	var player_scene = preload("res://scenes/player/Player3D.tscn")
+	
 	# Jogador 1 (Azul)
-	var player1 = create_player(Vector3(field_width / 4, 0, field_height / 2), Color.BLUE, "P1")
+	var player1 = player_scene.instantiate()
+	player1.position = Vector3(GameConstants.FIELD_WIDTH / 4, 0, GameConstants.FIELD_DEPTH / 2)
+	player1.player_id = 1
+	player1.team = 1
+	player1.player_name = "P1"
+	player1.set_team_color(GameConstants.TEAM_1_COLOR)
 	players.add_child(player1)
 	
 	# Jogador 2 (Vermelho)
-	var player2 = create_player(Vector3(3 * field_width / 4, 0, field_height / 2), Color.RED, "P2")
+	var player2 = player_scene.instantiate()
+	player2.position = Vector3(3 * GameConstants.FIELD_WIDTH / 4, 0, GameConstants.FIELD_DEPTH / 2)
+	player2.player_id = 2
+	player2.team = 2
+	player2.player_name = "P2"
+	player2.set_team_color(GameConstants.TEAM_2_COLOR)
 	players.add_child(player2)
+	
+	# Definir player como referência ao primeiro jogador
+	player = player1
 
 func create_player(pos: Vector3, color: Color, player_name: String) -> Node3D:
 	var player_node = Node3D.new()
@@ -256,21 +272,21 @@ func create_player(pos: Vector3, color: Color, player_name: String) -> Node3D:
 	return player_node
 
 func create_ball():
-	# Criar bola 3D usando CSGSphere
-	var ball_mesh = CSGSphere3D.new()
-	ball_mesh.radius = 10.0
-	ball_mesh.position = Vector3(field_width / 2, 10, field_height / 2) # Posição inicial
+	# Instanciar cena da bola 3D
+	var ball_scene = preload("res://scenes/ball/Ball3D.tscn")
+	var ball_instance = ball_scene.instantiate()
+	ball_instance.position = Vector3(field_width / 2, GameConstants.BALL_RADIUS + 5, field_height / 2)
+	ball.add_child(ball_instance)
 	
-	# Material branco para a bola
-	var ball_material = StandardMaterial3D.new()
-	ball_material.albedo_color = Color.WHITE
-	ball_mesh.material = ball_material
-	
-	ball.add_child(ball_mesh)
+	# Definir referência da bola para os jogadores
+	for child in players.get_children():
+		if child.has_method("set_ball_reference"):
+			child.set_ball_reference(ball_instance)
 
 func create_ui():
 	# Placar
 	var score_label = Label.new()
+	score_label.name = "ScoreLabel"
 	score_label.text = "PLACAR: 0 - 0"
 	score_label.position = Vector2(10, 10)
 	score_label.add_theme_color_override("font_color", Color.WHITE)
@@ -279,7 +295,7 @@ func create_ui():
 	
 	# Instruções
 	var instructions = Label.new()
-	instructions.text = "Use WASD para mover - Pressione ESC para sair"
+	instructions.text = "WASD: Mover | Shift: Correr | Espaço: Pular | E: Chutar | ESC: Sair | R: Reiniciar"
 	instructions.position = Vector2(10, 50)
 	instructions.add_theme_color_override("font_color", Color.WHITE)
 	ui.add_child(instructions)
@@ -288,6 +304,42 @@ func _process(_delta):
 	# Input básico
 	if Input.is_action_just_pressed("ui_cancel"):
 		get_tree().quit()
+	
+	# Controles do jogador
+	handle_player_input()
+
+func handle_player_input():
+	if not player:
+		return
+	
+	# Input de movimento (WASD)
+	var input_dir = Vector3()
+	
+	if Input.is_action_pressed("ui_left") or Input.is_key_pressed(KEY_A):
+		input_dir.x -= 1
+	if Input.is_action_pressed("ui_right") or Input.is_key_pressed(KEY_D):
+		input_dir.x += 1
+	if Input.is_action_pressed("ui_up") or Input.is_key_pressed(KEY_W):
+		input_dir.z -= 1
+	if Input.is_action_pressed("ui_down") or Input.is_key_pressed(KEY_S):
+		input_dir.z += 1
+	
+	# Input de sprint (Shift)
+	var sprint = Input.is_key_pressed(KEY_SHIFT)
+	
+	# Input de pulo (Espaço)
+	var jump = Input.is_action_just_pressed("ui_accept") or Input.is_key_pressed(KEY_SPACE)
+	
+	# Input de chute (E)
+	var kick = Input.is_key_pressed(KEY_E)
+	
+	# Normalizar direção de movimento
+	if input_dir.length() > 0:
+		input_dir = input_dir.normalized()
+	
+	# Aplicar input ao jogador
+	if player.has_method("set_input"):
+		player.set_input(input_dir, sprint, jump, kick)
 
 func _input(event):
 	if event is InputEventKey and event.pressed:

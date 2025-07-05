@@ -1,0 +1,18 @@
+[gd_scene load_steps=3 format=3 uid="uid://cak2m4n8p6q7r"]
+
+[ext_resource type="Script" path="res://scripts/physics/ball-3d-controller.gd" id="1_ball3d"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_1"]
+radius = 10.0
+
+[node name="Ball3D" type="RigidBody3D"]
+script = ExtResource("1_ball3d")
+mass = 0.5
+gravity_scale = 1.2
+linear_damp = 0.5
+angular_damp = 1.0
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("SphereShape3D_1")
