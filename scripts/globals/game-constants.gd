@@ -1,5 +1,4 @@
-class_name GameConstants
-extends Resource
+extends Node
 
 # Campo e Arena
 const FIELD_WIDTH := 800.0
@@ -49,9 +48,3 @@ const FIELD_COLOR := Color(0.2, 0.8, 0.2, 1.0)
 # Estados
 enum GameState { MENU, PLAYING, PAUSED, GOAL_SCORED }
 enum PlayerState { IDLE, MOVING, JUMPING, KICKING }
-
-# Camadas de Física
-const LAYER_PLAYERS := 1
-const LAYER_BALL := 2
-const LAYER_WALLS := 4
-const LAYER_GOALS := 8

@@ -1,5 +1,8 @@
 extends Node2D
 
+# Importa as constantes do jogo
+const GameConstants = preload("res://scripts/globals/game-constants.gd")
+
 # Cena simples para testar o jogo
 @onready var arena := $Arena
 @onready var players := $Players
@@ -8,8 +11,13 @@ extends Node2D
 @onready var camera := $Camera2D
 
 # Variáveis do jogo
-var field_width := 800
-var field_height := 600
+var field_width := 800.0
+var field_height := 600.0
+var player = null  # Referência ao jogador controlado pelo usuário
+var score_player1 := 0
+var score_player2 := 0
+var debug_mode := false
+var current_state = GameConstants.GameState.PLAYING
 
 func _ready():
 	print("Jogo iniciado!")
@@ -76,8 +84,8 @@ func create_circle(pos: Vector2, radius: float, color: Color) -> Node2D:
 	return circle
 
 func create_goals():
-	var goal_width = 120
-	var goal_height = 20
+	var goal_width = 120.0
+	var goal_height = 20.0
 	
 	# Gol esquerdo
 	var left_goal = ColorRect.new()
@@ -102,25 +110,25 @@ func create_players():
 	var player2 = create_player(Vector2(3 * field_width / 4, field_height / 2), Color.RED, "P2")
 	players.add_child(player2)
 
-func create_player(pos: Vector2, color: Color, name: String) -> Node2D:
-	var player = Node2D.new()
-	player.position = pos
+func create_player(pos: Vector2, color: Color, player_name: String) -> Node2D:
+	var player_node = Node2D.new()
+	player_node.position = pos
 	
 	# Sprite do jogador
 	var sprite = ColorRect.new()
 	sprite.color = color
 	sprite.size = Vector2(30, 40)
 	sprite.position = Vector2(-15, -20)
-	player.add_child(sprite)
+	player_node.add_child(sprite)
 	
 	# Nome do jogador
 	var label = Label.new()
-	label.text = name
+	label.text = player_name
 	label.position = Vector2(-10, -35)
 	label.add_theme_color_override("font_color", Color.WHITE)
-	player.add_child(label)
+	player_node.add_child(label)
 	
-	return player
+	return player_node
 
 func create_ball():
 	var ball_sprite = ColorRect.new()
@@ -145,7 +153,7 @@ func create_ui():
 	instructions.add_theme_color_override("font_color", Color.WHITE)
 	ui.add_child(instructions)
 
-func _process(delta):
+func _process(_delta):
 	# Input básico
 	if Input.is_action_just_pressed("ui_cancel"):
 		get_tree().quit()
@@ -188,15 +196,15 @@ func reset_positions():
 		ball.reset_position()
 
 func toggle_pause():
-	if current_state == GameState.PLAYING:
-		current_state = GameState.PAUSED
+	if current_state == GameConstants.GameState.PLAYING:
+		current_state = GameConstants.GameState.PAUSED
 		get_tree().paused = true
-	elif current_state == GameState.PAUSED:
-		current_state = GameState.PLAYING
+	elif current_state == GameConstants.GameState.PAUSED:
+		current_state = GameConstants.GameState.PLAYING
 		get_tree().paused = false
 
 func on_goal_scored(team: int):
-	current_state = GameState.GOAL_SCORED
+	current_state = GameConstants.GameState.GOAL_SCORED
 	
 	# Atualizar pontuação
 	if team == 1:
@@ -210,7 +218,7 @@ func on_goal_scored(team: int):
 	# Reset após delay
 	await get_tree().create_timer(2.0).timeout
 	reset_positions()
-	current_state = GameState.PLAYING
+	current_state = GameConstants.GameState.PLAYING
 
 func create_goal_celebration():
 	# Placeholder para celebração de gol
@@ -241,7 +249,7 @@ func create_debug_display():
 	# Atualizar debug info a cada frame
 	set_process(true)
 
-func _physics_process(delta):
+func _physics_process(_delta):
 	if debug_mode and ui.has_node("DebugLabel"):
 		var debug_label = ui.get_node("DebugLabel")
 		var debug_text = ""
