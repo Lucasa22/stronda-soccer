@@ -1,7 +1,8 @@
-[gd_scene load_steps=5 format=3 uid="uid://nl7ndwnwidqv"]
+[gd_scene load_steps=6 format=3 uid="uid://nl7ndwnwidqv"]
 
 [ext_resource type="PackedScene" uid="uid://c5y8qm7n2k1p5" path="res://scenes/player/Player3D.tscn" id="1_player3d_scene"]
 [ext_resource type="PackedScene" uid="uid://cak2m4n8p6q7r" path="res://scenes/ball/Ball3D.tscn" id="2_ball3d_scene"]
+[ext_resource type="Script" path="res://scripts/game_3d/camera_controller.gd" id="3_camera_script"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_pqoxt"]
 size = Vector2(100, 60)
@@ -42,12 +43,17 @@ comment = "Container for the ball instance"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 2) # Initial position for the ball
 
 
-[node name="GameCamera3D" type="Camera3D" parent="."]
+[node name="GameCamera3D" type="Camera3D" parent="." node_paths=PackedStringArray("target_path")]
 transform = Transform3D(1, 0, 0, 0, 0.819152, 0.573576, 0, -0.573576, 0.819152, 0, 20, 15)
 projection = 0
 fov = 60.0
 near = 0.1
 far = 1000.0
+script = ExtResource("3_camera_script")
+target_path = NodePath("../Players/Player1")
+offset = Vector3(0, 12, 8)
+look_at_offset = Vector3(0, 1, 0)
+smoothness = 7.0
 comment = "Main game camera. Position and rotation might need adjustment based on final field size and player height."
 
 [node name="UI" type="CanvasLayer" parent="."]

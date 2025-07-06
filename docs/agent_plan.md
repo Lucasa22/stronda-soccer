@@ -109,14 +109,23 @@ Melhorar os seguintes aspectos do jogo:
     - :heavy_check_mark: **Integração Inicial na Cena 3D:** `Player3D` e `Ball3D` instanciados em `Game3D.tscn`.
     - :heavy_check_mark: **Testes Iniciais e Iteração:** Instruções para testes manuais fornecidas ao usuário.
     - :heavy_check_mark: **Implementar Chute Básico em 3D:** Lógica de chute adicionada ao `player_3d_controller.gd` usando `Area3D` para detecção.
-- **Arquivos Criados/Modificados (Fase Inicial 3D):**
-    - `scenes/game/Game3D.tscn`
-    - `scenes/player/Player3D.tscn`
-    - `scripts/player_3d/player_3d_controller.gd` (movido de `scripts/player/`)
-    - `scenes/ball/Ball3D.tscn`
-    - `scripts/ball_3d/ball_3d_controller.gd` (movido de `scripts/physics/`)
-    - `project.godot` (inputs e configurações de física 3D)
-- **Próximos Passos da Migração 3D:** Continuar com os passos do plano (Modo de Treinamento 3D, refinamentos, etc.).
+- **Status da Fase Atual (Refinamentos):**
+    - :heavy_check_mark: **Refinamento da Câmera 3D:** Script `camera_controller.gd` criado e aplicado, com seguimento suave e offsets configuráveis.
+    - :heavy_check_mark: **Desenvolvimento do Modo de Treinamento (Fase 2 - Funcionalidades):** Script `training_mode_logic.gd` criado e integrado, permitindo reset da bola (R) e jogador (Shift+R). Gols placeholders adicionados. Inputs configurados.
+    - :heavy_check_mark: **Melhorias na Mecânica de Chute:** Implementada carga de chute (segurar 'F'), variação de força, e influência na elevação com `aim_high` (Shift+F). Movimento do jogador relativo à câmera.
+    - :heavy_check_mark: **Feedback Visual e Sonoro Básico (Lógica):** Nós `AudioStreamPlayer3D` adicionados ao jogador (chute) e bola (colisão). Scripts atualizados para tocar sons (arquivos de áudio a serem adicionados pelo usuário).
+    - :red_circle: **Testes e Ajustes:** Adiado pelo usuário. Próxima etapa crucial.
+- **Arquivos Criados/Modificados (Refinamentos):**
+    - `scripts/game_3d/camera_controller.gd`
+    - `scripts/game_3d/training_mode_logic.gd`
+    - `scenes/game/Game3D.tscn` (atualizado com script de câmera)
+    - `scenes/game/TrainingMode3D.tscn` (atualizado com script de câmera, lógica de treino, gols placeholder)
+    - `scripts/player_3d/player_3d_controller.gd` (mecânica de chute aprimorada, som)
+    - `scenes/player/Player3D.tscn` (adicionado AudioStreamPlayer3D)
+    - `scripts/ball_3d/ball_3d_controller.gd` (som de colisão)
+    - `scenes/ball/Ball3D.tscn` (adicionado AudioStreamPlayer3D, conectado sinal `body_entered`)
+    - `project.godot` (novas actions de input: `reset_ball`, `reset_player`, `aim_high`)
+- **Próximos Passos da Migração 3D:** Testes extensivos, depois mais refinamentos ou novas funcionalidades 3D.
 
 ### 9. Modo de Treinamento (Nova Solicitação)
 - **Objetivo:** Fornecer um ambiente para o usuário testar livremente as mecânicas do jogo (movimentação, chutes, etc.) sem a pressão de uma partida.
@@ -129,18 +138,21 @@ Melhorar os seguintes aspectos do jogo:
     - Pode servir como um ambiente de teste para novas mecânicas antes de integrá-las ao jogo principal.
 - **Implementação:**
     - :heavy_check_mark: **Fase 1 (Ambiente Básico 3D):** Cena `TrainingMode3D.tscn` criada duplicando `Game3D.tscn`. UI básica informativa adicionada.
+    - :heavy_check_mark: **Fase 2 (Funcionalidades):** Resets de bola e jogador implementados. Gols placeholders adicionados.
 - **Arquivos Criados/Modificados (Modo Treinamento):**
     - `scenes/game/TrainingMode3D.tscn`
-- **Arquivos Potenciais (Futuro):** `scripts/game_3d/training_mode_logic.gd` (se necessário).
+    - `scripts/game_3d/training_mode_logic.gd`
+- **Arquivos Potenciais (Futuro):** Melhorias na UI do modo treino, opções de configuração.
 
 ## Prioridades e Próximos Passos (Revisados)
 
-**Decisão do Usuário:** Migração para 3D é a prioridade máxima.
+**Decisão do Usuário:** Migração para 3D é a prioridade máxima. Testes serão feitos após esta rodada de desenvolvimento.
 
-1.  **Continuar Implementação da Migração 3D (Conforme plano detalhado):**
-    -   Testes mais aprofundados das mecânicas básicas em 3D.
-    -   Refinamento da câmera 3D.
-    -   Desenvolvimento do Modo de Treinamento 3D (Fases subsequentes: reset de bola/jogador, etc.).
-    -   Eventualmente, substituição de placeholders por assets 3D finais.
-2.  **Re-priorizar outras tarefas originais** (IA, Faltas, etc.) para após a estabilização do núcleo 3D.
-3.  **Estrutura de Testes Automatizados:** Introduzir testes para as novas mecânicas 3D assim que estiverem mais estáveis.
+1.  **Testes e Ajustes:** O usuário realizará testes nas funcionalidades implementadas. Feedback é aguardado.
+2.  **Continuar Implementação da Migração 3D (Conforme plano detalhado e feedback dos testes):**
+    -   Refinamento da câmera 3D com base nos testes.
+    -   Ajustes na mecânica de chute (força, direção, elevação) com base nos testes.
+    -   Ajustes na física da bola e do jogador, se necessário.
+    -   Eventualmente, substituição de placeholders por assets 3D finais (quando disponíveis).
+3.  **Re-priorizar outras tarefas originais** (IA, Faltas, etc.) para após a estabilização do núcleo 3D.
+4.  **Estrutura de Testes Automatizados:** Introduzir testes para as novas mecânicas 3D assim que estiverem mais estáveis.

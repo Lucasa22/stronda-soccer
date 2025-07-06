@@ -49,3 +49,22 @@ billboard = 1 # Faces the camera
 no_depth_test = true
 fixed_size = true
 pixel_size = 0.01
+
+[node name="KickSound" type="AudioStreamPlayer3D" parent="."]
+# Assign an AudioStream (e.g., kick.wav or kick.ogg) to this node in the Inspector
+# stream = ExtResource("X_kick_sound")
+bus = "Master"
+attenuation_model = 0 # Linear attenuation might be too simple, inverse distance is default & good
+unit_db = 0.0
+unit_size = 10.0 # Sounds will be audible up to this distance at full volume, then attenuate
+max_db = 0.0
+pitch_scale = 1.0
+autoplay = false
+max_distance = 50.0 # Sound culling distance
+ doppler_tracking = 0
+font_size = 32
+outline_modulate = Color(0, 0, 0, 1)
+billboard = 1 # Faces the camera
+no_depth_test = true
+fixed_size = true
+pixel_size = 0.01

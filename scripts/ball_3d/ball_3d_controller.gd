@@ -44,3 +44,19 @@ func _integrate_forces(state):
 	# angular_velocity = Vector3.ZERO
 	# get_tree().call_group("game_manager", "reset_ball_position", self) # If a game manager handles this
 	pass
+
+@onready var collision_sound: AudioStreamPlayer3D = $CollisionSound if has_node("CollisionSound") else null
+
+func _on_body_entered(body):
+	# print("Ball collided with: ", body.name)
+	if collision_sound and collision_sound.stream:
+		# Play sound if it's not already playing (prevents spamming on multiple contacts in same frame)
+		if not collision_sound.is_playing():
+			# Optionally, vary pitch slightly for more dynamic sound
+			# collision_sound.pitch_scale = randf_range(0.9, 1.1)
+			collision_sound.play()
+
+	# Example: if it hits a player, maybe a different sound or logic
+	# if body.is_in_group("players"):
+		# print("Ball hit a player")
+		pass
