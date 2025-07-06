@@ -1,4 +1,4 @@
-[gd_scene load_steps=27 format=3 uid="uid://c5y8qm7n2k1p5"]
+[gd_scene load_steps=38 format=3 uid="uid://c5y8qm7n2k1p5"]
 
 [ext_resource type="Script" path="res://scripts/player_3d/player_3d_controller.gd" id="1_zxcvb"]
 [ext_resource type="PackedScene" uid="uid://d0j2c2x0qjswk" path="res://scenes/player/PlayerModel3D.tscn" id="2_model"]
@@ -32,6 +32,21 @@ animation = "Spin"
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_QuickStop_Ref"]
 animation = "QuickStop"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_KickLaces_Ref"]
+animation = "Kick_Laces"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_KickInsideFoot_Ref"]
+animation = "Kick_InsideFoot"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_KickVolley_Ref"]
+animation = "Kick_Volley"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_KickBicycle_Ref"]
+animation = "Kick_Bicycle"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_KickHeader_Ref"]
+animation = "Kick_Header"
 
 [sub_resource type="AnimationNodeBlendSpace1D" id="AnimationNodeBlendSpace1D_Movement"]
 blend_point_0/node = SubResource("AnimationNodeAnimation_Idle") # Re-use Idle node for speed 0
@@ -91,6 +106,18 @@ switch_mode = 2 # AtEnd
 [sub_resource type="AnimationNodeStateMachineTransition" id="Transition_QuickStop_to_Idle"]
 switch_mode = 2 # AtEnd
 
+[sub_resource type="AnimationNodeStateMachineTransition" id="Transition_KickLaces_to_Idle"]
+switch_mode = 2 # AtEnd
+[sub_resource type="AnimationNodeStateMachineTransition" id="Transition_KickInsideFoot_to_Idle"]
+switch_mode = 2 # AtEnd
+[sub_resource type="AnimationNodeStateMachineTransition" id="Transition_KickVolley_to_Idle"] # Or Falling if in air
+switch_mode = 2 # AtEnd
+[sub_resource type="AnimationNodeStateMachineTransition" id="Transition_KickBicycle_to_Falling"] # Bicycle kick likely ends in a fall/recovery
+switch_mode = 2 # AtEnd
+[sub_resource type="AnimationNodeStateMachineTransition" id="Transition_KickHeader_to_Idle"] # Or Falling
+switch_mode = 2 # AtEnd
+
+
 [sub_resource type="AnimationNodeStateMachine" id="AnimationNodeStateMachine_main"]
 states/Idle/node = SubResource("AnimationNodeAnimation_Idle")
 states/Idle/position = Vector2(200, 100)
@@ -102,19 +129,29 @@ states/Falling/node = SubResource("AnimationNodeAnimation_Jump_Fall_Loop")
 states/Falling/position = Vector2(600, 0)
 states/Landing/node = SubResource("AnimationNodeAnimation_Jump_Land") # Added Landing state
 states/Landing/position = Vector2(600, 100)
-states/Kicking/node = SubResource("AnimationNodeAnimation_Kick")
+# Original Kicking state might be repurposed or removed if Laces is the default.
+states/Kicking/node = SubResource("AnimationNodeAnimation_Kick") # This is the old "Kick_RightFoot"
 states/Kicking/position = Vector2(400, 200)
+states/Kicking_Laces/node = SubResource("AnimationNodeAnimation_KickLaces_Ref")
+states/Kicking_Laces/position = Vector2(400, 250)
+states/Kicking_InsideFoot/node = SubResource("AnimationNodeAnimation_KickInsideFoot_Ref")
+states/Kicking_InsideFoot/position = Vector2(200, 250)
+states/Kicking_Volley/node = SubResource("AnimationNodeAnimation_KickVolley_Ref")
+states/Kicking_Volley/position = Vector2(0, 250)
+states/Kicking_Bicycle/node = SubResource("AnimationNodeAnimation_KickBicycle_Ref")
+states/Kicking_Bicycle/position = Vector2(0, 150)
+states/Kicking_Header/node = SubResource("AnimationNodeAnimation_KickHeader_Ref")
+states/Kicking_Header/position = Vector2(0, 50)
 states/Sliding/node = SubResource("AnimationNodeAnimation_Slide")
 states/Sliding/position = Vector2(600, 200)
 states/HeelChoping/node = SubResource("AnimationNodeAnimation_HeelChop_Ref")
 states/HeelChoping/position = Vector2(400, 300)
 states/Spinning/node = SubResource("AnimationNodeAnimation_Spin_Ref")
 states/Spinning/position = Vector2(200, 300)
-states/QuickStopping/node = SubResource("AnimationNodeAnimation_QuickStop_Ref") # New State
-states/QuickStopping/position = Vector2(600, 300) # Position in graph
-transitions = ["Idle", "Moving", SubResource("Transition_Idle_to_Moving"), "Moving", "Idle", SubResource("Transition_Moving_to_Idle"), "Jumping", "Falling", SubResource("Transition_JumpStart_to_Falling"), "Falling", "Landing", SubResource("Transition_Falling_to_Land"), "Landing", "Idle", SubResource("Transition_Land_to_Idle"), "HeelChoping", "Idle", SubResource("Transition_HeelChop_to_Idle"), "Spinning", "Idle", SubResource("Transition_Spin_to_Idle"), "QuickStopping", "Idle", SubResource("Transition_QuickStop_to_Idle")]
-# More transitions: Start->Idle, Moving->Jumping, Idle->Jumping, etc.
-# For Any->Action transitions (Kick, Slide, HeelChop, Spin, QuickStop), these are typically handled by `travel()` from script
+states/QuickStopping/node = SubResource("AnimationNodeAnimation_QuickStop_Ref")
+states/QuickStopping/position = Vector2(600, 300)
+transitions = ["Idle", "Moving", SubResource("Transition_Idle_to_Moving"), "Moving", "Idle", SubResource("Transition_Moving_to_Idle"), "Jumping", "Falling", SubResource("Transition_JumpStart_to_Falling"), "Falling", "Landing", SubResource("Transition_Falling_to_Land"), "Landing", "Idle", SubResource("Transition_Land_to_Idle"), "HeelChoping", "Idle", SubResource("Transition_HeelChop_to_Idle"), "Spinning", "Idle", SubResource("Transition_Spin_to_Idle"), "QuickStopping", "Idle", SubResource("Transition_QuickStop_to_Idle"), "Kicking_Laces", "Idle", SubResource("Transition_KickLaces_to_Idle"), "Kicking_InsideFoot", "Idle", SubResource("Transition_KickInsideFoot_to_Idle"), "Kicking_Volley", "Idle", SubResource("Transition_KickVolley_to_Idle"), "Kicking_Bicycle", "Falling", SubResource("Transition_KickBicycle_to_Falling"), "Kicking_Header", "Idle", SubResource("Transition_KickHeader_to_Idle")]
+# For Any->Action transitions these are typically handled by `travel()` from script
 # rather than explicit "Any" state transitions in the graph for simplicity here.
 # Start node will be Idle.
 graph_offset = Vector2(-100, -50)
@@ -134,6 +171,9 @@ radius = 0.7
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_dribble"]
 radius = 0.4
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_head_collision"]
+radius = 0.3 # Slightly larger than Mesh_Head's radius (0.25) for better detection
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_Body"]
 radius = 0.35
@@ -163,6 +203,16 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0) # Origin at the play
 # The PlayerModel3D.tscn should be built with its origin at the character's feet.
 # And its internal elements (like Skeleton3D) positioned accordingly.
 # For example, if Hips bone is at y=0.9 within PlayerModel3D.tscn, it will align correctly.
+
+[node name="HeadArea3D" type="Area3D" parent="PlayerModel/PlayerModel3D_Instance/Skeleton3D/BA_Head"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, 0) # Position relative to BA_Head (where Mesh_Head is)
+collision_layer = 0 # It detects, doesn't need to be detected by others for this.
+collision_mask = 4  # Mask for the ball's layer
+monitoring = true
+monitorable = false
+
+[node name="HeadShape3D" type="CollisionShape3D" parent="PlayerModel/PlayerModel3D_Instance/Skeleton3D/BA_Head/HeadArea3D"]
+shape = SubResource("SphereShape3D_head_collision") # New subresource for head collision
 
 [node name="AnimationTree" type="AnimationTree" parent="PlayerModel"]
 tree_root = SubResource("AnimationNodeStateMachine_main")

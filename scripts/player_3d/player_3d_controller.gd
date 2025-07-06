@@ -55,7 +55,8 @@ var ball_node: RigidBody3D = null
 @onready var player_model: Node3D = $PlayerModel
 @onready var player_model_instance: Node3D = $PlayerModel/PlayerModel3D_Instance # Reference to the actual model scene instance
 @onready var animation_tree: AnimationTree = $PlayerModel/AnimationTree
-@onready var kick_area_3d = $KickArea3D
+@onready var kick_area_3d: Area3D = $KickArea3D
+@onready var head_area_3d: Area3D = $PlayerModel/PlayerModel3D_Instance/Skeleton3D/BA_Head/HeadArea3D
 @onready var dribble_area_3d: Area3D = $DribbleArea3D if has_node("DribbleArea3D") else null
 @onready var camera_3d = get_viewport().get_camera_3d() # Assuming camera is available for human player
 @onready var kick_sound: AudioStreamPlayer3D = $KickSound if has_node("KickSound") else null
@@ -71,7 +72,18 @@ const ANIM_STATE_KICKING = "Kicking"
 const ANIM_STATE_SLIDING = "Sliding"
 const ANIM_STATE_HEEL_CHOP = "HeelChoping"
 const ANIM_STATE_SPIN = "Spinning"
-const ANIM_STATE_QUICK_STOP = "QuickStopping" # New animation state
+const ANIM_STATE_QUICK_STOP = "QuickStopping"
+const ANIM_STATE_KICKING_LACES = "Kicking_Laces"
+const ANIM_STATE_KICKING_INSIDE_FOOT = "Kicking_InsideFoot"
+const ANIM_STATE_KICKING_VOLLEY = "Kicking_Volley"
+const ANIM_STATE_KICKING_BICYCLE = "Kicking_Bicycle"
+const ANIM_STATE_KICKING_HEADER = "Kicking_Header"
+
+
+# Input Actions for kick modifiers (user needs to map these in Project Settings)
+# const INPUT_KICK_MODIFIER_LOW = "kick_modifier_low" # e.g., Ctrl or Shift
+# const INPUT_KICK_MODIFIER_HIGH_CHIP = "kick_modifier_chip" # e.g., Alt
+const INPUT_KICK_MODIFIER_SPECIAL = "kick_modifier_special" # For bicycle kick etc. User maps this.
 
 @export_group("Animation Settings")
 @export var lean_angle_max: float = 15.0 # Max lean angle in degrees
@@ -80,6 +92,12 @@ const ANIM_STATE_QUICK_STOP = "QuickStopping" # New animation state
 # Base speeds for animations, used to scale animation speed if needed
 @export var walk_anim_speed_val: float = 1.0 # Corresponds to blend_position 1.0 in MovementBlend
 @export var run_anim_speed_val: float = 2.0  # Corresponds to blend_position 2.0 in MovementBlend
+
+@export_group("Kicking Precision")
+@export var base_kick_accuracy_angle: float = 15.0 # Base angle in degrees for inaccuracy
+@export var speed_accuracy_penalty_factor: float = 1.5 # How much speed affects accuracy angle
+@export var charge_accuracy_bonus_factor: float = 0.5 # How much charge improves accuracy (max reduction)
+@export var min_accuracy_angle: float = 2.0 # Minimum possible inaccuracy angle in degrees
 
 @export_group("Skill Moves")
 @export var skill_move_cooldown: float = 0.5
@@ -97,6 +115,7 @@ const ANIM_STATE_QUICK_STOP = "QuickStopping" # New animation state
 var current_look_direction = Vector3.FORWARD # Used for model rotation
 var kick_charge_start_time: float = 0.0
 var is_charging_kick: bool = false
+var current_kick_accuracy_angle_deg: float = 15.0 # Current inaccuracy angle in degrees
 var ball_being_dribbled: RigidBody3D = null
 var last_knock_on_time: float = -knock_on_cooldown # Initialize to allow immediate first knock-on
 var last_skill_move_time: float = -skill_move_cooldown # Initialize to allow immediate first skill
@@ -223,6 +242,58 @@ func _physics_process(delta):
 	# Update animations for both human and AI after their physics are processed
 	if is_instance_valid(animation_tree) and animation_tree.active:
 		_update_animation_parameters(delta)
+
+	# Automatic Header Check (for human and AI)
+	if is_instance_valid(head_area_3d):
+		_check_for_header()
+
+
+func _check_for_header():
+	var bodies = head_area_3d.get_overlapping_bodies()
+	for body in bodies:
+		if body.is_in_group("ball") and body is RigidBody3D:
+			var ball_rb = body as RigidBody3D
+			# Check ball height relative to player's head. HeadArea3D is already at head height.
+			# So, ball's y position relative to HeadArea3D's origin.
+			var ball_local_y_in_head_area = head_area_3d.to_local(ball_rb.global_position).y
+
+			# Define an effective height range for header, e.g., slightly below to slightly above head center
+			# HeadArea3D's shape radius is 0.3.
+			if abs(ball_local_y_in_head_area) < 0.35 : # Ball is vertically aligned with head area
+				# Ensure player is not already in a kick/action state that shouldn't be interrupted
+				var state_machine = animation_tree["parameters/StateMachine/playback"]
+				var current_anim_state = state_machine.get_current_node()
+				if current_anim_state != ANIM_STATE_KICKING and \
+				   current_anim_state != ANIM_STATE_KICKING_LACES and \
+				   current_anim_state != ANIM_STATE_KICKING_INSIDE_FOOT and \
+				   current_anim_state != ANIM_STATE_KICKING_VOLLEY and \
+				   current_anim_state != ANIM_STATE_KICKING_HEADER and \
+				   current_anim_state != ANIM_STATE_SLIDING and \
+				   current_anim_state != ANIM_STATE_JUMPING and \
+				   current_anim_state != ANIM_STATE_FALLING: # Add other uninterruptible states
+					_perform_header(ball_rb)
+					return # Performed header
+
+
+func _perform_header(ball_rb: RigidBody3D):
+	print("Performing Header")
+	if not is_instance_valid(animation_tree) or not animation_tree.active:
+		push_warning("AnimationTree not valid for header.")
+		return
+
+	var state_machine = animation_tree["parameters/StateMachine/playback"]
+	state_machine.travel(ANIM_STATE_KICKING_HEADER)
+
+	var header_dir = current_look_direction.normalized() # Basic direction from player's facing
+	# Add a bit of upward component, can be adjusted
+	header_dir.y = 0.25
+	header_dir = header_dir.normalized()
+
+	var force = lerp(min_kick_force, max_kick_force, 0.25) # Headers are usually not full power of a kick
+	ball_rb.apply_central_impulse(header_dir * force)
+	if kick_sound and kick_sound.stream: # Maybe a different "thump" sound for headers
+		kick_sound.play()
+
 
 func _update_animation_parameters(delta):
 	if not is_instance_valid(animation_tree) or not animation_tree.active:
@@ -376,19 +447,55 @@ func _human_physics_process(delta):
 	# Update previous_look_direction for the next frame's sharp turn check
 	previous_look_direction = current_look_direction
 
-	# Handle Kick Charging
-	if Input.is_action_pressed("kick") and not ball_being_dribbled : # Don't charge kick if actively dribbling close
-		if not is_charging_kick:
+	# Handle Kick Charging and Type Selection
+	if Input.is_action_just_pressed("kick") and not is_charging_kick and not ball_being_dribbled:
+		# Check for quick low kick (modifier + tap)
+		if Input.is_action_pressed("kick_modifier_low"): # User maps "kick_modifier_low"
+			_perform_low_kick()
+		elif Input.is_action_pressed(INPUT_KICK_MODIFIER_SPECIAL): # User maps "kick_modifier_special"
+			# Bicycle kick is not charged, it's a reaction.
+			# Conditions for bicycle kick will be checked within the function.
+			_attempt_bicycle_kick() # New function to check conditions and then perform
+		else:
+			# Start charging for a standard/strong kick
 			is_charging_kick = true
 			kick_charge_start_time = Time.get_ticks_msec() / 1000.0
+			current_kick_accuracy_angle_deg = base_kick_accuracy_angle + velocity.horizontal().length() * speed_accuracy_penalty_factor
+			current_kick_accuracy_angle_deg = max(current_kick_accuracy_angle_deg, min_accuracy_angle)
+			# Visuals for charge bar/cone would start here. Print for now.
+			print("Kick Charge Started. Initial Accuracy Angle (deg): ", current_kick_accuracy_angle_deg)
 
-	if Input.is_action_just_released("kick"):
+	elif is_charging_kick and Input.is_action_pressed("kick"): # While kick button is held (charging)
+		var current_charge_duration = (Time.get_ticks_msec() / 1000.0) - kick_charge_start_time
+		var charge_ratio = clamp(current_charge_duration / kick_hold_time_for_max_force, 0.0, 1.0)
+
+		# Accuracy improves with charge, up to a limit
+		var accuracy_bonus = charge_ratio * (base_kick_accuracy_angle * charge_accuracy_bonus_factor)
+		var angle_while_charging = base_kick_accuracy_angle + velocity.horizontal().length() * speed_accuracy_penalty_factor - accuracy_bonus
+		current_kick_accuracy_angle_deg = clamp(angle_while_charging, min_accuracy_angle, base_kick_accuracy_angle * (1.0 + speed_accuracy_penalty_factor * 2.0)) # Max imaginable angle
+		# print("Charging Kick. Current Accuracy Angle (deg): ", current_kick_accuracy_angle_deg) # Can be spammy
+
+		# Placeholder for sweet spot UI update or cone visualization update
+		# For cone visualization: use current_kick_accuracy_angle_deg and camera_3d.global_transform.basis.z
+
+	elif Input.is_action_just_released("kick"):
 		if is_charging_kick:
 			var charge_duration = (Time.get_ticks_msec() / 1000.0) - kick_charge_start_time
-			_handle_kick(charge_duration)
+			# Final accuracy angle is already calculated during charging, or recalculate one last time if needed.
+			_perform_strong_kick(charge_duration)
 			is_charging_kick = false
-		elif ball_being_dribbled: # If kick is tapped while dribbling, maybe a small pass/shot
-			_handle_kick(0.05) # Treat as a very short charge kick
+			print("Kick Released. Final Accuracy Angle (deg): ", current_kick_accuracy_angle_deg)
+		# If kick was released without charging (e.g. tapped while dribbling or no modifier)
+		# this could be a default tap pass/shot if desired, or do nothing if already handled by modifier press.
+		# For now, focusing on charged strong kick and modified low kick.
+		# A quick tap while dribbling might be handled by _perform_low_kick if modifier also used,
+		# or could be a separate _perform_tap_pass() if no modifier.
+		# The original logic for tap-kick while dribbling:
+		# elif ball_being_dribbled: _handle_kick(0.05)
+		# This can be re-evaluated. For now, let's assume tap with modifier = low kick. Tap without = nothing or default weak kick.
+		elif ball_being_dribbled and not Input.is_action_pressed("kick_modifier_low"): # Simple tap while dribbling (no mod)
+			_perform_strong_kick(0.05) # Perform a very weak "strong" kick as a pass/tap
+
 
 	# --- Skill Move: Quick Stop / Drag Back ---
 	# Condition: Was moving, movement input released, sprint pressed, on floor, cooldown passed
@@ -438,6 +545,171 @@ func _perform_quick_stop():
 	ball_being_dribbled.apply_central_impulse(force_dir_to_back * quick_stop_ball_drag_force)
 	# A small upward nudge can also help
 	ball_being_dribbled.apply_central_impulse(Vector3.UP * quick_stop_ball_drag_force * 0.1)
+
+# --- Bicycle Kick Logic ---
+func _attempt_bicycle_kick():
+	# Conditions for bicycle kick:
+	# 1. Ball must be in kick_area_3d (or a slightly larger, higher area).
+	# 2. Ball must be airborne at a suitable height.
+	# 3. Player should ideally be facing away from the target (e.g., opponent goal).
+	# 4. Cooldown.
+
+	var current_time = Time.get_ticks_msec() / 1000.0
+	if (current_time - last_skill_move_time) < skill_move_cooldown: # Use general skill cooldown
+		print("Bicycle kick on cooldown.")
+		return
+
+	var bodies = kick_area_3d.get_overlapping_bodies() # Could define a specific "bicycle_kick_area"
+	for body in bodies:
+		if body.is_in_group("ball") and body is RigidBody3D:
+			var ball_rb = body as RigidBody3D
+
+			var ball_height_from_player_feet = ball_rb.global_position.y - global_position.y
+			# Suitable height: e.g., above waist (0.8) and below head + arm reach (2.2)
+			if ball_height_from_player_feet > 0.8 and ball_height_from_player_feet < 2.2:
+				# Check player facing (e.g., away from opponent's goal at positive Z)
+				# Assuming opponent goal is at positive Z for this example. In reality, get goal direction.
+				var opponent_goal_direction = Vector3.FORWARD # Example: Opponent goal is towards world +Z
+				if is_ai_controlled: # AI's opponent goal is opposite to its own goal
+					opponent_goal_direction = (-ai_goal_to_defend_pos).normalized()
+
+				var dot_facing_vs_goal = current_look_direction.dot(opponent_goal_direction)
+				if dot_facing_vs_goal < -0.5: # Player is facing significantly away from opponent goal
+
+					# Check if ball is somewhat behind the player or directly above
+					var ball_dir_from_player = (ball_rb.global_position - global_position).normalized()
+					var dot_ball_behind = current_look_direction.dot(ball_dir_from_player)
+					if dot_ball_behind < 0.3: # Ball is generally behind or to the side/above (not in front)
+						_perform_bicycle_kick(ball_rb, opponent_goal_direction)
+						last_skill_move_time = current_time
+						return
+					else:
+						print("Bicycle attempt: Ball not positioned correctly behind/above.")
+				else:
+					print("Bicycle attempt: Player not facing away from goal enough. Dot: ", dot_facing_vs_goal)
+			else:
+				print("Bicycle attempt: Ball not at suitable height. Height: ", ball_height_from_player_feet)
+		return # Only attempt on first ball found for simplicity
+
+
+func _perform_bicycle_kick(ball_rb: RigidBody3D, target_direction_world: Vector3):
+	print("Performing Bicycle Kick!")
+	if not is_instance_valid(animation_tree) or not animation_tree.active:
+		push_warning("AnimationTree not valid for bicycle kick.")
+		return
+
+	var state_machine = animation_tree["parameters/StateMachine/playback"]
+	state_machine.travel(ANIM_STATE_KICKING_BICYCLE)
+
+	# Physics: High, arcing shot towards the target_direction_world (opponent's goal)
+	var kick_power = max_kick_force * 1.1 # Bicycle kicks are often powerful
+	var upward_angle = deg_to_rad(40.0 + randf_range(-5.0, 5.0)) # 35-45 degree launch angle
+
+	var kick_direction = target_direction_world.slide(Vector3.UP).normalized() # Horizontal direction to goal
+	kick_direction = kick_direction.rotated(Vector3.UP, randf_range(-0.1, 0.1)) # Slight horizontal variance
+	kick_direction = kick_direction.rotated(kick_direction.cross(Vector3.UP).normalized(), upward_angle) # Apply upward angle
+
+	ball_rb.apply_central_impulse(kick_direction.normalized() * kick_power)
+	if kick_sound and kick_sound.stream: kick_sound.play()
+
+	# Player might fall or have restricted movement for a bit after this.
+	# This can be handled by the animation itself (e.g. ending in a "lying on ground" pose)
+	# and then transitioning to a "get_up" animation state. For now, just plays the kick.
+
+
+func _perform_low_kick():
+	print("Performing Low Kick (Inside Foot)")
+	if not is_instance_valid(animation_tree) or not animation_tree.active:
+		push_warning("AnimationTree not valid for low kick.")
+		return
+
+	var state_machine = animation_tree["parameters/StateMachine/playback"]
+	state_machine.travel(ANIM_STATE_KICKING_INSIDE_FOOT)
+
+	var bodies = kick_area_3d.get_overlapping_bodies()
+	for body in bodies:
+		if body.is_in_group("ball") and body is RigidBody3D:
+			var ball_rb = body as RigidBody3D
+			var kick_dir = -camera_3d.global_transform.basis.z.normalized() # Basic direction
+			kick_dir.y = 0.05 # Very slight lift for a driven low shot
+			kick_dir = kick_dir.normalized()
+
+			# Apply inaccuracy for low kick (using a fixed higher inaccuracy for tap shots for now)
+			var low_kick_accuracy_angle_rad = deg_to_rad(base_kick_accuracy_angle * 1.2) # Slightly less accurate than a charged one by default
+			var random_angle_offset = randf_range(-low_kick_accuracy_angle_rad / 2.0, low_kick_accuracy_angle_rad / 2.0)
+			# Assuming kick_dir is mostly forward, rotate around local Y (world UP) for horizontal spread
+			kick_dir = kick_dir.rotated(Vector3.UP, random_angle_offset)
+			# Could also add slight vertical variation if desired.
+
+			var force = lerp(min_kick_force, max_kick_force, 0.3) # Low kicks are not max power usually, 30% of max range
+			ball_rb.apply_central_impulse(kick_dir * force)
+			if kick_sound and kick_sound.stream: kick_sound.play() # Consider different sound for low kick
+			return # Kick one ball
+
+
+func _perform_strong_kick(charge_duration: float): # Was _handle_kick
+	var charge_ratio = clamp(charge_duration / kick_hold_time_for_max_force, 0.0, 1.0)
+	var current_kick_force = lerp(min_kick_force, max_kick_force, charge_ratio)
+
+	var bodies = kick_area_3d.get_overlapping_bodies()
+	for body in bodies:
+		if body.is_in_group("ball") and body is RigidBody3D:
+			var ball_rb = body as RigidBody3D
+			var kick_anim_to_play = ANIM_STATE_KICKING_LACES # Default strong kick animation
+
+			# Volley detection
+			var ball_height_from_ground = ball_rb.global_position.y - global_position.y # Approx height from player's feet
+			var is_volley = false
+			if ball_height_from_ground > 0.4 and ball_height_from_ground < 1.5: # Ball between knee and chest height
+				is_volley = true
+				kick_anim_to_play = ANIM_STATE_KICKING_VOLLEY
+				print("Attempting Volley")
+				current_kick_force *= 1.2 # Volleys can be more powerful
+
+			# Trigger Animation
+			if is_instance_valid(animation_tree) and animation_tree.active:
+				var state_machine = animation_tree["parameters/StateMachine/playback"]
+				state_machine.travel(kick_anim_to_play)
+			else:
+				push_warning("AnimationTree not valid for strong kick/volley.")
+
+			var kick_dir_forward = -camera_3d.global_transform.basis.z.normalized()
+			kick_dir_forward.y = 0 # Base horizontal aim
+			kick_dir_forward = kick_dir_forward.normalized()
+
+			var upward_angle = lerp(0.15, 0.5, charge_ratio) # Standard kick trajectory
+			if is_volley:
+				upward_angle = lerp(0.2, 0.6, charge_ratio) # Volleys might get more height control via aim
+			if Input.is_action_pressed("aim_high"):
+				upward_angle = lerp(0.6, 0.9, charge_ratio) # Lob shot
+
+			kick_dir_forward.y = upward_angle
+			var base_final_kick_dir = kick_dir_forward.normalized()
+
+			# Apply Inaccuracy based on current_kick_accuracy_angle_deg
+			var kick_accuracy_rad = deg_to_rad(current_kick_accuracy_angle_deg)
+			var random_angle_h = randf_range(-kick_accuracy_rad / 2.0, kick_accuracy_rad / 2.0)
+			# Apply horizontal variation by rotating around the world UP axis
+			var final_kick_dir = base_final_kick_dir.rotated(Vector3.UP, random_angle_h)
+
+			# Optional: Add slight vertical variation too, based on a portion of the accuracy angle
+			var random_angle_v = randf_range(-kick_accuracy_rad / 4.0, kick_accuracy_rad / 4.0) # Smaller vertical spread
+			var right_axis = final_kick_dir.cross(Vector3.UP).normalized()
+			final_kick_dir = final_kick_dir.rotated(right_axis, random_angle_v)
+			final_kick_dir = final_kick_dir.normalized() # Re-normalize after rotations
+
+
+			var ball_to_player_dir = (global_position - ball_rb.global_position).normalized()
+			var player_facing_dir = -player_model.global_transform.basis.z
+			var dot_player_to_ball = player_facing_dir.dot(-ball_to_player_dir)
+
+			# Simplified check for now, main logic in kick type selection
+			if dot_player_to_ball > 0.1: # Player somewhat facing the ball
+				ball_rb.apply_central_impulse(final_kick_dir * current_kick_force)
+				if kick_sound and kick_sound.stream: kick_sound.play()
+			else:
+				print(f"Ball not in ideal kicking position for strong kick. Player_dot: {dot_player_to_ball}")
+			return # Kick one ball
 
 
 func _find_closest_ball_in_area(area: Area3D) -> RigidBody3D:
