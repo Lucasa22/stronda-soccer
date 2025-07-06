@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3 uid="uid://d0j2c2x0qjswk"]
+[gd_scene load_steps=25 format=3 uid="uid://d0j2c2x0qjswk"]
 
 [ext_resource type="Shader" path="res://shaders/team_color_shader.gdshader" id="1_team_shader"]
 
@@ -194,10 +194,33 @@ length = 0.8
 loop_mode = 0
 # User to add tracks for body sliding pose
 
+[sub_resource type="Animation" id="Animation_HeelChop"]
+resource_name = "HeelChop"
+length = 0.4
+loop_mode = 0 # One-shot animation
+# User to add tracks for leg flicking back/side
+
+[sub_resource type="Animation" id="Animation_Spin"]
+resource_name = "Spin"
+length = 0.6 # Should match spin_duration in script ideally
+loop_mode = 0 # One-shot
+# User to add keyframes for body spinning.
+# Note: The player_model node itself is tweened for rotation in the script.
+# This animation can be for finer details of the body reacting to the spin.
+
+[sub_resource type="Animation" id="Animation_QuickStop"]
+resource_name = "QuickStop"
+length = 0.5
+loop_mode = 0 # One-shot
+# User to add keyframes for a quick stop/drag back motion.
+
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_new"]
 _data = {
 "Dribble_Loop": SubResource("Animation_Dribble_Loop"),
+"HeelChop": SubResource("Animation_HeelChop"),
 "Idle": SubResource("Animation_Idle"),
+"QuickStop": SubResource("Animation_QuickStop"),
+"Spin": SubResource("Animation_Spin"),
 "Jump_Fall_Loop": SubResource("Animation_Jump_Fall_Loop"),
 "Jump_Land": SubResource("Animation_Jump_Land"),
 "Jump_Start": SubResource("Animation_Jump_Start"),

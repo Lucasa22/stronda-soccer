@@ -69,6 +69,9 @@ const ANIM_STATE_FALLING = "Falling"
 const ANIM_STATE_LANDING = "Landing"
 const ANIM_STATE_KICKING = "Kicking"
 const ANIM_STATE_SLIDING = "Sliding"
+const ANIM_STATE_HEEL_CHOP = "HeelChoping"
+const ANIM_STATE_SPIN = "Spinning"
+const ANIM_STATE_QUICK_STOP = "QuickStopping" # New animation state
 
 @export_group("Animation Settings")
 @export var lean_angle_max: float = 15.0 # Max lean angle in degrees
@@ -78,21 +81,123 @@ const ANIM_STATE_SLIDING = "Sliding"
 @export var walk_anim_speed_val: float = 1.0 # Corresponds to blend_position 1.0 in MovementBlend
 @export var run_anim_speed_val: float = 2.0  # Corresponds to blend_position 2.0 in MovementBlend
 
+@export_group("Skill Moves")
+@export var skill_move_cooldown: float = 0.5
+@export var trick_stick_threshold: float = 0.8 # Not used yet for heel chop
+@export var heel_chop_force: float = 10.0
+@export var heel_chop_lateral_offset: float = 0.3 # How much to the side the ball is flicked
+@export var heel_chop_backward_factor: float = 0.5 # How much backward component
+@export var spin_ball_nudge_force: float = 5.0
+@export var spin_rotation_degrees: float = 360.0 # Degrees for the spin
+@export var spin_duration: float = 0.6 # Duration of the spin animation/tween
+@export var quick_stop_ball_drag_force: float = 8.0
+@export var quick_stop_min_speed_threshold: float = 2.5 # Min speed to perform quick stop
+@export var foot_smoke_effect: PackedScene = preload("res://scenes/effects/FootSmokeEffect.tscn")
 
 var current_look_direction = Vector3.FORWARD # Used for model rotation
 var kick_charge_start_time: float = 0.0
 var is_charging_kick: bool = false
 var ball_being_dribbled: RigidBody3D = null
 var last_knock_on_time: float = -knock_on_cooldown # Initialize to allow immediate first knock-on
+var last_skill_move_time: float = -skill_move_cooldown # Initialize to allow immediate first skill
+var sprint_knock_on_last_press_time: float = 0.0
+const DOUBLE_TAP_THRESHOLD: float = 0.3 # Seconds for double tap detection
+
+var previous_look_direction: Vector3 = Vector3.FORWARD # For ball loss detection
+@export var sharp_turn_loss_dot_threshold: float = 0.7 # Lower means sharper turn allowed before loss
+@export var sharp_turn_loss_speed_threshold: float = 4.0 # Speed above which sharp turn loss applies
 
 
 func _unhandled_input(event):
-	if is_ai_controlled: return # AI does not use direct unhandled_input for actions like this
+	if is_ai_controlled: return
 
-	if event.is_action_pressed("sprint_knock_on") and ball_being_dribbled and not is_charging_kick:
-		if (Time.get_ticks_msec() / 1000.0) - last_knock_on_time > knock_on_cooldown:
-			_perform_knock_on()
-			last_knock_on_time = Time.get_ticks_msec() / 1000.0
+	if event.is_action_pressed("sprint_knock_on"):
+		var current_time = Time.get_ticks_msec() / 1000.0
+		if ball_being_dribbled and not is_charging_kick:
+			if (current_time - sprint_knock_on_last_press_time) < DOUBLE_TAP_THRESHOLD:
+				# Double tap detected for Heel Chop
+				if (current_time - last_skill_move_time) > skill_move_cooldown:
+					_perform_heel_chop()
+					last_skill_move_time = current_time
+					# Consume the event so it doesn't also trigger knock_on immediately
+					get_viewport().set_input_as_handled()
+					sprint_knock_on_last_press_time = 0.0 # Reset to prevent triple tap issues
+					return # Heel chop performed
+			else:
+				# This is potentially the first tap of a double tap, or a single tap for knock-on
+				pass
+
+		# Standard knock-on if not a double tap that was handled
+		if not get_viewport().is_input_handled(): # Check if not consumed by heel chop
+			if ball_being_dribbled and not is_charging_kick: # Condition repeated for clarity
+				if (current_time - last_knock_on_time) > knock_on_cooldown: # Use standard knock_on_cooldown
+					_perform_knock_on()
+					last_knock_on_time = current_time
+
+		sprint_knock_on_last_press_time = current_time
+
+	elif event.is_action_pressed("skill_spin"): # New input action for spin
+		var current_time = Time.get_ticks_msec() / 1000.0
+		if ball_being_dribbled and not is_charging_kick:
+			if (current_time - last_skill_move_time) > skill_move_cooldown:
+				_perform_spin()
+				last_skill_move_time = current_time
+				get_viewport().set_input_as_handled()
+				return
+
+
+func _perform_spin():
+	if not ball_being_dribbled:
+		return
+
+	print("Performing Spin")
+	# Trigger Animation
+	if is_instance_valid(animation_tree) and animation_tree.active:
+		var state_machine = animation_tree["parameters/StateMachine/playback"]
+		state_machine.travel(ANIM_STATE_SPIN)
+
+	# Player Model Rotation Tween
+	# Create a tween to rotate the player_model (the visual part)
+	var tween = get_tree().create_tween()
+	var target_rotation_y = player_model.rotation.y + deg_to_rad(spin_rotation_degrees)
+	tween.tween_property(player_model, "rotation:y", target_rotation_y, spin_duration).set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_IN_OUT)
+	# Note: This rotates the PlayerModel Node3D container. The CharacterBody's orientation (current_look_direction)
+	# might need to be updated at the end of the spin if the spin is meant to change player facing direction.
+	# For now, it's a visual spin of the model. The actual current_look_direction for movement control is not changed by this tween.
+
+	# Ball Nudge - a gentle nudge to keep it close or guide it.
+	# This could be a small force towards the player's new forward direction after half the spin, for example.
+	# For simplicity, a small nudge towards current_look_direction (player's facing before spin starts).
+	var nudge_direction = current_look_direction.normalized()
+	nudge_direction.y = 0.05 # Slight upward
+	ball_being_dribbled.apply_central_impulse(nudge_direction * spin_ball_nudge_force)
+
+
+func _perform_heel_chop():
+	if not ball_being_dribbled:
+		return
+
+	print("Performing Heel Chop")
+	# Trigger Animation
+	if is_instance_valid(animation_tree) and animation_tree.active:
+		var state_machine = animation_tree["parameters/StateMachine/playback"]
+		state_machine.travel(ANIM_STATE_HEEL_CHOP)
+
+	# Ball Physics
+	# Player's right/left relative to their facing direction
+	var player_right_dir = current_look_direction.cross(Vector3.UP).normalized()
+	# Alternate sides for the heel chop, or pick one for now
+	# For simplicity, let's make it flick to the player's right side relative to their back
+	var flick_direction_local = (-current_look_direction.normalized() * heel_chop_backward_factor + player_right_dir * heel_chop_lateral_offset).normalized()
+
+	# Add a slight upward nudge
+	flick_direction_local.y = 0.15
+	flick_direction_local = flick_direction_local.normalized()
+
+	ball_being_dribbled.apply_central_impulse(flick_direction_local * heel_chop_force)
+	# Optionally, briefly reduce player control over the ball or increase a "skill_move_active" timer
+	# to prevent immediate re-dribbling interfering with the skill move animation/ball path.
+
 
 func _perform_knock_on():
 	if not ball_being_dribbled:
@@ -241,6 +346,8 @@ func _human_physics_process(delta):
 		velocity.x = move_toward(velocity.x, 0, deceleration * delta)
 		velocity.z = move_toward(velocity.z, 0, deceleration * delta)
 
+	var actual_velocity_before_move_and_slide = velocity # Store it before move_and_slide potentially changes it (e.g. collisions)
+
 	move_and_slide()
 
 	# Smoothly rotate model to face movement/look direction
@@ -251,8 +358,23 @@ func _human_physics_process(delta):
 			# Slerp for smooth rotation of the basis
 			player_model.global_transform.basis = current_basis.slerp(target_basis, turn_speed * delta)
 
+	# Update previous_look_direction *after* current_look_direction might have changed and *before* dribbling logic uses it.
+	# Dribbling logic needs the most up-to-date current_look_direction for its ideal ball placement.
+	# The "sharp turn" check should compare the current frame's look_direction with the one from the start of this frame's input processing.
+	# So, previous_look_direction should be updated at the END of the previous frame's logic or start of current.
+	# Let's update it before _handle_dribbling.
+	var look_dir_for_dribble_check = current_look_direction
+	# _handle_dribbling uses current_look_direction which is updated based on input.
+	# previous_look_direction should reflect the facing at the start of the _physics_process or after model rotation.
+	# For simplicity, we'll update previous_look_direction at the end of _human_physics_process,
+	# so in the next frame, _handle_dribbling can compare.
+
 	# Attempt to dribble
-	_handle_dribbling(delta, move_direction_input)
+	# Pass the horizontal component of velocity before move_and_slide for speed checks in dribbling.
+	_handle_dribbling(delta, move_direction_input, actual_velocity_before_move_and_slide.horizontal())
+
+	# Update previous_look_direction for the next frame's sharp turn check
+	previous_look_direction = current_look_direction
 
 	# Handle Kick Charging
 	if Input.is_action_pressed("kick") and not ball_being_dribbled : # Don't charge kick if actively dribbling close
@@ -267,6 +389,55 @@ func _human_physics_process(delta):
 			is_charging_kick = false
 		elif ball_being_dribbled: # If kick is tapped while dribbling, maybe a small pass/shot
 			_handle_kick(0.05) # Treat as a very short charge kick
+
+	# --- Skill Move: Quick Stop / Drag Back ---
+	# Condition: Was moving, movement input released, sprint pressed, on floor, cooldown passed
+	var current_speed_for_quick_stop = velocity.horizontal().length()
+	if move_direction_input.length_squared() == 0 and \
+	   current_speed_for_quick_stop > quick_stop_min_speed_threshold and \
+	   Input.is_action_pressed("sprint_knock_on") and \
+	   is_on_floor() and \
+	   ball_being_dribbled and \
+	   (Time.get_ticks_msec() / 1000.0) - last_skill_move_time > skill_move_cooldown:
+
+		# Check if we were moving significantly last frame but not this frame (input released)
+		# This logic needs a bit of history or to check previous velocity if current velocity is already being decelerated.
+		# For simplicity, we check if current input is zero but speed is still high from previous frame.
+		_perform_quick_stop()
+		last_skill_move_time = Time.get_ticks_msec() / 1000.0
+	# --- End Skill Move: Quick Stop ---
+
+
+func _perform_quick_stop():
+	print("Performing Quick Stop")
+	if not ball_being_dribbled:
+		return
+
+	# Animation
+	if is_instance_valid(animation_tree) and animation_tree.active:
+		var state_machine = animation_tree["parameters/StateMachine/playback"]
+		state_machine.travel(ANIM_STATE_QUICK_STOP)
+
+	# Player Deceleration - velocity is already being reduced by normal deceleration logic
+	# We can enhance it here if needed, e.g., velocity = Vector3.ZERO, but normal deceleration might be fine.
+	# velocity = velocity.move_toward(Vector3.ZERO, deceleration * 2 * get_physics_process_delta_time()) # Faster stop
+
+	# Ball Control - drag it back or stop it neatly
+	# Nudge slightly forward then pull back towards player's new stationary position
+	var player_forward = current_look_direction.normalized()
+	var ball_pos = ball_being_dribbled.global_position
+	var target_ball_pos_front = global_position + player_forward * 0.3 # Small nudge forward
+	var target_ball_pos_back = global_position - player_forward * 0.2 # Then slightly behind/at feet
+
+	var force_dir_to_front = (target_ball_pos_front - ball_pos).normalized()
+	# ball_being_dribbled.apply_central_impulse(force_dir_to_front * quick_stop_ball_drag_force * 0.5) # Initial small push
+
+	# Then drag back - this can be a continuous force or an impulse after a short delay
+	# For simplicity, an impulse to bring it towards the 'back' position
+	var force_dir_to_back = (target_ball_pos_back - ball_pos).normalized()
+	ball_being_dribbled.apply_central_impulse(force_dir_to_back * quick_stop_ball_drag_force)
+	# A small upward nudge can also help
+	ball_being_dribbled.apply_central_impulse(Vector3.UP * quick_stop_ball_drag_force * 0.1)
 
 
 func _find_closest_ball_in_area(area: Area3D) -> RigidBody3D:
@@ -284,21 +455,56 @@ func _find_closest_ball_in_area(area: Area3D) -> RigidBody3D:
 				closest_ball = body
 	return closest_ball
 
-func _handle_dribbling(delta: float, p_move_direction_input: Vector2):
+func _handle_dribbling(delta: float, p_move_direction_input: Vector2, p_current_h_velocity: Vector3):
 	var previously_dribbled_ball = ball_being_dribbled # Store reference to ball from previous frame
+	var current_ball_was_dribbled = ball_being_dribbled != null # Track if we start this frame with a dribbled ball
+	var shader_material_body: ShaderMaterial = null
+
+	# Get shader material for body if valid
+	if is_instance_valid(player_model_instance):
+		var body_mesh_node = player_model_instance.get_node_or_null("Skeleton3D/BA_Hips/Mesh_Body")
+		if body_mesh_node and body_mesh_node is MeshInstance3D:
+			var mat = body_mesh_node.get_surface_override_material(0)
+			if mat and mat is ShaderMaterial:
+				shader_material_body = mat
+
+	# Set initial dribbling shader param based on whether we start with ball
+	if shader_material_body:
+		shader_material_body.set_shader_parameter("is_dribbling_active", current_ball_was_dribbled)
+
+
 	ball_being_dribbled = null # Reset each frame, will be re-assigned if conditions met
 
-	var current_speed_sq = velocity.length_squared()
+	var current_h_speed = p_current_h_velocity.length() # Use passed horizontal speed
 
 	if not dribble_area_3d:
 		if previously_dribbled_ball and previously_dribbled_ball.has_method("set_is_being_dribbled"):
 			previously_dribbled_ball.set_is_being_dribbled(false) # Ensure ball physics reset
 		return
 
-	if current_speed_sq > (dribble_max_speed * dribble_max_speed) or is_charging_kick:
+	if current_h_speed > dribble_max_speed or is_charging_kick: # Compare with dribble_max_speed directly
 		if previously_dribbled_ball and previously_dribbled_ball.has_method("set_is_being_dribbled"):
 			previously_dribbled_ball.set_is_being_dribbled(false)
+			if shader_material_body: # Turn off glow
+				shader_material_body.set_shader_parameter("is_dribbling_active", false)
+		previous_look_direction = current_look_direction # Update for next frame
 		return
+
+	# --- Sharp Turn Ball Loss Logic ---
+	if current_ball_was_dribbled and previously_dribbled_ball: # Only if we were dribbling the same ball
+		if current_h_speed > sharp_turn_loss_speed_threshold:
+			var direction_dot_product = current_look_direction.dot(previous_look_direction)
+			if direction_dot_product < sharp_turn_loss_dot_threshold:
+				print("Lost ball due to sharp turn! Speed: ", current_h_speed, " Dot: ", direction_dot_product)
+				if previously_dribbled_ball.has_method("set_is_being_dribbled"):
+					previously_dribbled_ball.set_is_being_dribbled(false)
+				# Optionally apply a slight random outward impulse to the ball
+				var outward_dir = (previously_dribbled_ball.global_position - global_position).normalized()
+				outward_dir = outward_dir.rotated(Vector3.UP, randf_range(-0.5, 0.5)) # Randomize direction a bit
+				previously_dribbled_ball.apply_central_impulse(outward_dir * dribble_force_strength * 0.5)
+				previous_look_direction = current_look_direction # Update for next frame
+				return # Lost the ball, skip rest of dribbling logic for this frame
+	# --- End Sharp Turn Ball Loss Logic ---
 
 	var ball_to_control_this_frame = _find_closest_ball_in_area(dribble_area_3d)
 
@@ -317,11 +523,15 @@ func _handle_dribbling(delta: float, p_move_direction_input: Vector2):
 	if not ball_to_control_this_frame:
 		if previously_dribbled_ball and previously_dribbled_ball.has_method("set_is_being_dribbled"):
 			previously_dribbled_ball.set_is_being_dribbled(false)
+			if shader_material_body: # Turn off glow if we lost the ball
+				shader_material_body.set_shader_parameter("is_dribbling_active", false)
+		previous_look_direction = current_look_direction # Update for next frame, as we are returning
 		return
 
 	# If we switched balls or started dribbling a new one
 	if previously_dribbled_ball and previously_dribbled_ball != ball_to_control_this_frame and previously_dribbled_ball.has_method("set_is_being_dribbled"):
 		previously_dribbled_ball.set_is_being_dribbled(false)
+		# Glow will be handled by the new ball_being_dribbled status later or if no ball, above.
 
 	var ball_pos = ball_to_control_this_frame.global_position
 	var player_pos = global_position
@@ -331,6 +541,9 @@ func _handle_dribbling(delta: float, p_move_direction_input: Vector2):
 		if ball_to_control_this_frame.has_method("set_is_being_dribbled"):
 			ball_to_control_this_frame.set_is_being_dribbled(true)
 		ball_being_dribbled = ball_to_control_this_frame
+		if shader_material_body and not current_ball_was_dribbled : # If we just started dribbling this frame
+			shader_material_body.set_shader_parameter("is_dribbling_active", true)
+
 
 		# Calculate ideal ball position relative to player's facing direction (current_look_direction)
 		var player_forward = current_look_direction.normalized()
@@ -360,6 +573,20 @@ func _handle_dribbling(delta: float, p_move_direction_input: Vector2):
 
 
 		ball.apply_central_force(dribble_nudge_force)
+
+		# Spawn foot smoke effect
+		if foot_smoke_effect and dribble_nudge_force.length_squared() > 0.1: # Only if applying some force
+			var smoke = foot_smoke_effect.instantiate() as CPUParticles3D
+			get_tree().current_scene.add_child(smoke) # Add to current scene root
+			# Position at player's feet, or slightly behind the ball
+			smoke.global_position = global_position + Vector3(0, 0.05, 0) - current_look_direction * 0.2
+			smoke.emitting = true
+			var timer = smoke.get_node_or_null("SelfDestructTimer")
+			if timer is Timer: # Check if timer exists (it should based on the scene)
+				timer.start()
+			else: # Fallback if timer node isn't found, to prevent orphaned nodes
+				smoke.queue_free.call_deferred("queue_free", smoke.lifetime + 1.0)
+
 
 		# Dampen ball's velocity slightly if it's moving too fast away from player during dribble
 		var ball_vel_relative_to_player = ball.linear_velocity - velocity

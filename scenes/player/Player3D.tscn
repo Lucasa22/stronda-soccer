@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3 uid="uid://c5y8qm7n2k1p5"]
+[gd_scene load_steps=27 format=3 uid="uid://c5y8qm7n2k1p5"]
 
 [ext_resource type="Script" path="res://scripts/player_3d/player_3d_controller.gd" id="1_zxcvb"]
 [ext_resource type="PackedScene" uid="uid://d0j2c2x0qjswk" path="res://scenes/player/PlayerModel3D.tscn" id="2_model"]
@@ -23,6 +23,15 @@ animation = "Kick_RightFoot"
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_Slide"]
 animation = "Slide_Tackle"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_HeelChop_Ref"]
+animation = "HeelChop" # References the new animation in PlayerModel3D
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_Spin_Ref"]
+animation = "Spin"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_QuickStop_Ref"]
+animation = "QuickStop"
 
 [sub_resource type="AnimationNodeBlendSpace1D" id="AnimationNodeBlendSpace1D_Movement"]
 blend_point_0/node = SubResource("AnimationNodeAnimation_Idle") # Re-use Idle node for speed 0
@@ -72,6 +81,15 @@ switch_mode = 2 # AtEnd
 # switch_mode = 0
 # advance_mode = 2
 
+[sub_resource type="AnimationNodeStateMachineTransition" id="Transition_HeelChop_to_Idle"]
+switch_mode = 2 # AtEnd (Go to Idle after HeelChop finishes)
+# Could also transition to Moving if player provides input during/after. For now, Idle.
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="Transition_Spin_to_Idle"]
+switch_mode = 2 # AtEnd
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="Transition_QuickStop_to_Idle"]
+switch_mode = 2 # AtEnd
 
 [sub_resource type="AnimationNodeStateMachine" id="AnimationNodeStateMachine_main"]
 states/Idle/node = SubResource("AnimationNodeAnimation_Idle")
@@ -88,9 +106,15 @@ states/Kicking/node = SubResource("AnimationNodeAnimation_Kick")
 states/Kicking/position = Vector2(400, 200)
 states/Sliding/node = SubResource("AnimationNodeAnimation_Slide")
 states/Sliding/position = Vector2(600, 200)
-transitions = ["Idle", "Moving", SubResource("Transition_Idle_to_Moving"), "Moving", "Idle", SubResource("Transition_Moving_to_Idle"), "Jumping", "Falling", SubResource("Transition_JumpStart_to_Falling"), "Falling", "Landing", SubResource("Transition_Falling_to_Land"), "Landing", "Idle", SubResource("Transition_Land_to_Idle")]
+states/HeelChoping/node = SubResource("AnimationNodeAnimation_HeelChop_Ref")
+states/HeelChoping/position = Vector2(400, 300)
+states/Spinning/node = SubResource("AnimationNodeAnimation_Spin_Ref")
+states/Spinning/position = Vector2(200, 300)
+states/QuickStopping/node = SubResource("AnimationNodeAnimation_QuickStop_Ref") # New State
+states/QuickStopping/position = Vector2(600, 300) # Position in graph
+transitions = ["Idle", "Moving", SubResource("Transition_Idle_to_Moving"), "Moving", "Idle", SubResource("Transition_Moving_to_Idle"), "Jumping", "Falling", SubResource("Transition_JumpStart_to_Falling"), "Falling", "Landing", SubResource("Transition_Falling_to_Land"), "Landing", "Idle", SubResource("Transition_Land_to_Idle"), "HeelChoping", "Idle", SubResource("Transition_HeelChop_to_Idle"), "Spinning", "Idle", SubResource("Transition_Spin_to_Idle"), "QuickStopping", "Idle", SubResource("Transition_QuickStop_to_Idle")]
 # More transitions: Start->Idle, Moving->Jumping, Idle->Jumping, etc.
-# For Any->Action transitions (Kick, Slide), these are typically handled by `travel()` from script
+# For Any->Action transitions (Kick, Slide, HeelChop, Spin, QuickStop), these are typically handled by `travel()` from script
 # rather than explicit "Any" state transitions in the graph for simplicity here.
 # Start node will be Idle.
 graph_offset = Vector2(-100, -50)

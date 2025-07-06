@@ -1,0 +1,32 @@
+[gd_scene load_steps=3 format=3 uid="uid://c1x0wg8f8wqgv"]
+
+[sub_resource type="Gradient" id="Gradient_smoke"]
+offsets = PackedFloat32Array(0, 0.691824, 1)
+colors = PackedColorArray(0.752941, 0.752941, 0.752941, 0.501961, 0.439216, 0.439216, 0.439216, 0.25098, 0.301961, 0.301961, 0.301961, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_smoke"]
+gradient = SubResource("Gradient_smoke")
+
+[node name="FootSmokeEffect" type="CPUParticles3D"]
+emitting = false
+amount = 16
+lifetime = 0.6
+one_shot = true
+explosiveness = 0.8
+emission_shape = 1 # Sphere
+emission_sphere_radius = 0.1
+direction = Vector3(0, 1, 0)
+spread = 60.0
+gravity = Vector3(0, -0.5, 0)
+initial_velocity_min = 0.2
+initial_velocity_max = 0.8
+scale_amount_min = 0.05
+scale_amount_max = 0.15
+color_ramp = SubResource("GradientTexture1D_smoke")
+
+[node name="SelfDestructTimer" type="Timer" parent="."]
+wait_time = 1.0 # Lifetime of particles + a buffer
+one_shot = true
+autostart = false
+
+[connection signal="timeout" from="SelfDestructTimer" to="." method="queue_free"]
