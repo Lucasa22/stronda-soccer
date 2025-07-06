@@ -21,13 +21,56 @@ func _ready():
 
 	# print("Ball ready. Mass: ", mass, " Friction: ", physics_material_override.friction if physics_material_override else "N/A", " Bounce: ", physics_material_override.bounce if physics_material_override else "N/A")
 
-func _integrate_forces(state):
-	# Apply custom drag if the ball is in the air (simple air resistance)
-	if not state.get_contact_count() > 0: # A basic way to check if in air (might need refinement)
-		var air_resistance_factor = 0.01 # Adjust this value
-		state.linear_velocity -= state.linear_velocity * air_resistance_factor * state.step
+# Variable to be set by player when dribbling, to temporarily modify physics
+var is_being_dribbled: bool = false
+var _default_linear_damp: float = -1.0 # Store project default or inspector value
+var _default_angular_damp: float = -1.0
 
-	# Could add Magnus effect here if desired, based on angular_velocity and linear_velocity
+func _ready():
+	add_to_group("ball")
+	# Store default damp values if not already set by inspector override
+	if linear_damp < 0:
+		_default_linear_damp = ProjectSettings.get_setting("physics/3d/default_linear_damp", 0.1)
+	else:
+		_default_linear_damp = linear_damp
+
+	if angular_damp < 0:
+		_default_angular_damp = ProjectSettings.get_setting("physics/3d/default_angular_damp", 0.1)
+	else:
+		_default_angular_damp = angular_damp
+
+	if _default_linear_damp < 0: _default_linear_damp = 0.1
+	if _default_angular_damp < 0: _default_angular_damp = 0.1
+
+	set_physics_process_internal(true) # Ensure _integrate_forces is called
+
+func set_is_being_dribbled(dribbling_status: bool):
+	is_being_dribbled = dribbling_status
+	# Immediately update damping when status changes
+	if is_being_dribbled:
+		linear_damp = _default_linear_damp * 0.1 # Significantly reduce for responsiveness
+		angular_damp = _default_angular_damp * 0.1
+	else:
+		linear_damp = _default_linear_damp
+		angular_damp = _default_angular_damp
+
+func _integrate_forces(state):
+	if is_being_dribbled:
+		# Lower damping when being dribbled for more responsiveness to player's forces
+		linear_damp = default_linear_damp * 0.2
+		angular_damp = default_angular_damp * 0.2
+	else:
+		# Restore default damping when not being dribbled
+		linear_damp = default_linear_damp
+		angular_damp = default_angular_damp
+
+		# Apply custom drag if the ball is in the air (simple air resistance)
+		# Only apply this when not being actively dribbled to avoid interference
+		if not state.get_contact_count() > 0:
+			var air_resistance_factor = 0.015 # Slightly increased
+			state.linear_velocity -= state.linear_velocity * air_resistance_factor * state.step
+
+	# Could add Magnus effect here if desired
 	pass
 
 

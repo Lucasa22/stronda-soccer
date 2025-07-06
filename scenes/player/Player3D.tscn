@@ -13,6 +13,9 @@ height = 1.8
 [sub_resource type="SphereShape3D" id="SphereShape3D_kick"]
 radius = 0.7
 
+[sub_resource type="SphereShape3D" id="SphereShape3D_dribble"]
+radius = 0.4 # Smaller radius for dribble area
+
 [node name="Player3D" type="CharacterBody3D"]
 collision_layer = 1
 collision_mask = 5 # Collide with static world (1) and ball (4 assumed)
@@ -39,6 +42,18 @@ monitorable = false # Player's kick area doesn't need to be monitored by others
 [node name="KickShape3D" type="CollisionShape3D" parent="KickArea3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.6) # Positioned slightly in front of the player capsule
 shape = SubResource("SphereShape3D_kick")
+
+
+[node name="DribbleArea3D" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0) # Lower and closer to feet
+collision_layer = 0
+collision_mask = 4 # Detects only Ball (physics layer 4)
+monitoring = true
+monitorable = false
+
+[node name="DribbleShape3D" type="CollisionShape3D" parent="DribbleArea3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.3) # Smaller radius, closer to player front
+shape = SubResource("SphereShape3D_dribble") # New SubResource needed
 
 [node name="PlayerNameLabel3D" type="Label3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 0) # Positioned above the capsule

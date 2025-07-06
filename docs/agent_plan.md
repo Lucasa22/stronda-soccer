@@ -115,13 +115,19 @@ Melhorar os seguintes aspectos do jogo:
     - :heavy_check_mark: **Melhorias na Mecânica de Chute:** Implementada carga de chute (segurar 'F'), variação de força, e influência na elevação com `aim_high` (Shift+F). Movimento do jogador relativo à câmera. Valores de força e tempo de carga ajustados. Lógica de detecção de chute refinada.
     - :heavy_check_mark: **Feedback Visual e Sonoro Básico (Lógica):** Nós `AudioStreamPlayer3D` adicionados ao jogador (chute) e bola (colisão). Scripts atualizados para tocar sons (arquivos de áudio a serem adicionados pelo usuário). Som de colisão da bola agora varia com a intensidade.
     - :white_check_mark: **Testes e Ajustes:** Usuário indicou satisfação com os ajustes proativos e adiou testes detalhados. Consideramos esta rodada de ajustes concluída com base no feedback.
-- **Arquivos Criados/Modificados (Refinamentos - Rodada 2):**
-    - `scripts/ball_3d/ball_3d_controller.gd` (ajustes de física, resistência do ar, som de colisão dinâmico)
-    - `scenes/ball/Ball3D.tscn` (ajustes nos parâmetros de física no Inspector)
-    - `scripts/player_3d/player_3d_controller.gd` (ajustes na movimentação, gravidade customizada, aceleração/desaceleração, rotação suave, parâmetros de chute, condição de chute)
-    - `scripts/game_3d/camera_controller.gd` (lógica de anti-oclusão com RayCast, ajustes de offset)
-    - `scenes/game/Game3D.tscn` (atualizados parâmetros da câmera)
-    - `scenes/game/TrainingMode3D.tscn` (atualizados parâmetros da câmera)
+- **Status da Fase Atual (Dribles e Movimentação Avançada da Bola):**
+    - :heavy_check_mark: **Pesquisa e Design - Movimentação Avançada da Bola e Dribles:** Concluído.
+    - :heavy_check_mark: **Refinamento da Interação Jogador-Bola (Baixa Velocidade):** Lógica inicial para `_handle_dribbling` adicionada ao `player_3d_controller.gd` com forças sutis para controle próximo.
+    - :heavy_check_mark: **Implementação de "Toque Curto/Condução" (Dribble Stickiness):** `DribbleArea3D` adicionada ao `Player3D.tscn` e lógica de detecção refinada em `player_3d_controller.gd`.
+    - :heavy_check_mark: **Implementação de "Toque para Adiantar" (Knock-on):** Funcionalidade adicionada com input `sprint_knock_on` (Left Shift), cooldown e força configurável.
+    - :heavy_check_mark: **Ajustes na Física da Bola para Dribles:** `ball_3d_controller.gd` modificado para que a bola possa ter seu damping alterado dinamicamente (via `set_is_being_dribbled`) para melhor responsividade durante o drible. Jogador agora informa a bola sobre o estado de drible.
+    - :wavy_dash: **Feedback Visual para Dribles:** Adiado.
+    - :red_circle: **Testes Iterativos no `TrainingMode3D.tscn`:** Testes detalhados adiados pelo usuário.
+- **Arquivos Criados/Modificados (Dribles e Movimentação Avançada da Bola):**
+    - `scripts/player_3d/player_3d_controller.gd` (adição de lógica de drible, knock-on, comunicação com a bola)
+    - `scenes/player/Player3D.tscn` (adicionada `DribbleArea3D`)
+    - `scripts/ball_3d/ball_3d_controller.gd` (adição de `is_being_dribbled` e `set_is_being_dribbled` para alterar física dinamicamente)
+    - `project.godot` (adicionada action `sprint_knock_on`)
 - **Próximos Passos da Migração 3D:** Testes extensivos pelo usuário são altamente recomendados. Após isso, novas funcionalidades ou mais refinamentos.
     - `scenes/game/Game3D.tscn` (atualizado com script de câmera)
     - `scenes/game/TrainingMode3D.tscn` (atualizado com script de câmera, lógica de treino, gols placeholder)
