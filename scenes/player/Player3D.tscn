@@ -1,21 +1,51 @@
-[gd_scene load_steps=3 format=3 uid="uid://c5y8qm7n2k1p5"]
+[gd_scene load_steps=5 format=3 uid="uid://c5y8qm7n2k1p5"]
 
-[ext_resource type="Script" path="res://scripts/player/player-3d-controller.gd" id="1_player3d"]
+[ext_resource type="Script" path="res://scripts/player_3d/player_3d_controller.gd" id="1_zxcvb"]
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_1"]
-size = Vector3(30, 40, 30)
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_player"]
+radius = 0.4
+height = 1.8
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
+radius = 0.4
+height = 1.8
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_kick"]
+radius = 0.7
 
 [node name="Player3D" type="CharacterBody3D"]
-script = ExtResource("1_player3d")
+collision_layer = 1
+collision_mask = 5 # Collide with static world (1) and ball (4 assumed)
+script = ExtResource("1_zxcvb")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 20, 0)
+[node name="PlayerMesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+mesh = SubResource("CapsuleMesh_player")
+# Basic material for visibility
+surface_material_override/0 = StandardMaterial3D.new()
+surface_material_override/0.albedo_color = Color(0.8, 0.1, 0.1, 1) # Red color for player
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 20, 0)
-shape = SubResource("BoxShape3D_1")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_player")
 
-[node name="Label3D" type="Label3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 50, 0)
+[node name="KickArea3D" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0) # Centered a bit lower for foot height
+collision_layer = 0 # Doesn't need to be hit
+collision_mask = 4 # Detects only Ball (assuming Ball is on physics layer 4)
+monitoring = true
+monitorable = false # Player's kick area doesn't need to be monitored by others
+
+[node name="KickShape3D" type="CollisionShape3D" parent="KickArea3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.6) # Positioned slightly in front of the player capsule
+shape = SubResource("SphereShape3D_kick")
+
+[node name="PlayerNameLabel3D" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 0) # Positioned above the capsule
 text = "Player"
-font_size = 24
+font_size = 32
+outline_modulate = Color(0, 0, 0, 1)
+billboard = 1 # Faces the camera
+no_depth_test = true
+fixed_size = true
+pixel_size = 0.01

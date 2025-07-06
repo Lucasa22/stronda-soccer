@@ -51,4 +51,19 @@ far = 1000.0
 comment = "Main game camera. Position and rotation might need adjustment based on final field size and player height."
 
 [node name="UI" type="CanvasLayer" parent="."]
-comment = "For 2D UI elements like score, timer, etc."
+comment = "For 2D UI elements like score, timer, etc. Minimized for training mode."
+
+[node name="InfoLabel" type="Label" parent="UI"]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_top = 0.0
+anchor_right = 0.5
+anchor_bottom = 0.0
+offset_left = -150.0
+offset_top = 20.0
+offset_right = 150.0
+offset_bottom = 50.0
+grow_horizontal = 2
+text = "Training Mode - WASD to Move, Space to Jump, F to Kick"
+horizontal_alignment = 1
+vertical_alignment = 1

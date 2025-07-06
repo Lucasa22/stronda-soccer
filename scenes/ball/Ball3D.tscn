@@ -1,18 +1,37 @@
-[gd_scene load_steps=3 format=3 uid="uid://cak2m4n8p6q7r"]
+[gd_scene load_steps=4 format=3 uid="uid://cak2m4n8p6q7r"]
 
-[ext_resource type="Script" path="res://scripts/physics/ball-3d-controller.gd" id="1_ball3d"]
+[ext_resource type="Script" path="res://scripts/ball_3d/ball_3d_controller.gd" id="1_lmno"]
 
-[sub_resource type="SphereShape3D" id="SphereShape3D_1"]
-radius = 10.0
+[sub_resource type="SphereMesh" id="SphereMesh_ball3d"]
+radius = 0.22 # Standard soccer ball size is ~0.22m diameter
+height = 0.44
 
-[node name="Ball3D" type="RigidBody3D"]
-script = ExtResource("1_ball3d")
-mass = 0.5
-gravity_scale = 1.2
-linear_damp = 0.5
-angular_damp = 1.0
+[sub_resource type="SphereShape3D" id="SphereShape3D_ball3d"]
+radius = 0.22
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+[node name="Ball3D" type="RigidBody3D" groups=["ball"]]
+collision_layer = 4 # Physics layer 4 for Ball
+collision_mask = 7  # Collide with World (1), Player (2), and other Balls (4)
+script = ExtResource("1_lmno")
+mass = 0.45 # Standard soccer ball mass ~0.45kg
+# physics_material_override: Set in script or here if preferred
+# linear_damp and angular_damp will use project defaults or can be overridden here/in script
+continuous_cd = true # Important for fast moving small objects
+contact_monitor = true # To detect collisions if needed by script
+max_contacts_reported = 8 # Number of contacts to report
+
+[node name="BallMesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("SphereMesh_ball3d")
+# Basic white material for the ball
+surface_material_override/0 = StandardMaterial3D.new()
+surface_material_override/0.albedo_color = Color(0.95, 0.95, 0.95, 1)
+surface_material_override/0.metallic = 0.2
+surface_material_override/0.roughness = 0.4
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-shape = SubResource("SphereShape3D_1")
+shape = SubResource("SphereShape3D_ball3d")
+
+[node name="VisibleOnScreenNotifier3D" type="VisibleOnScreenNotifier3D" parent="."]
+aabb = AABB(-0.3, -0.3, -0.3, 0.6, 0.6, 0.6) # Slightly larger than the ball mesh
+# Connect screen_exited() if ball needs to be reset/managed when off-screen
+# Example: signal screen_exited() from VisibleOnScreenNotifier3D to _on_ball_screen_exited in ball_3d_controller.gd
