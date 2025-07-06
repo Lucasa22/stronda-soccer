@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://d0j2c2x0qjswk"]
+[gd_scene load_steps=22 format=3 uid="uid://d0j2c2x0qjswk"]
 
 [ext_resource type="Shader" path="res://shaders/team_color_shader.gdshader" id="1_team_shader"]
 
@@ -116,6 +116,97 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0.05) # Positioned o
 mesh = SubResource("SphereMesh_Hair_LowPoly")
 surface_material_override/0 = SubResource("HairMaterial")
 visible = true
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+"": SubResource("AnimationLibrary_new")
+}
+
+[sub_resource type="Animation" id="Animation_Idle"]
+resource_name = "Idle"
+length = 0.5
+loop_mode = 0 # No loop for a static pose, or 1 if it's a subtle looping idle
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Skeleton3D:bone_pose/Hips") # Example track, user adds more
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)] # Placeholder Identity
+}
+# User to add more tracks for Spine, Arms, Legs etc. and set actual keyframes in editor
+
+[sub_resource type="Animation" id="Animation_Walk"]
+resource_name = "Walk"
+length = 1.0
+loop_mode = 1 # Loop walk cycle
+# User to add tracks for Hips, Spine, Legs, Arms and set keyframes
+
+[sub_resource type="Animation" id="Animation_Run"]
+resource_name = "Run"
+length = 0.7
+loop_mode = 1 # Loop run cycle
+# User to add tracks and keyframes
+
+[sub_resource type="Animation" id="Animation_Sprint"]
+resource_name = "Sprint"
+length = 0.6 # Slightly faster than run
+loop_mode = 1
+# User to add tracks and keyframes (can be copy of Run initially)
+
+[sub_resource type="Animation" id="Animation_Jump_Start"]
+resource_name = "Jump_Start"
+length = 0.3
+loop_mode = 0
+# User to add tracks and keyframes (e.g. crouch pose)
+
+[sub_resource type="Animation" id="Animation_Jump_Fall_Loop"]
+resource_name = "Jump_Fall_Loop"
+length = 1.0
+loop_mode = 1
+# User to add tracks and keyframes (in-air pose)
+
+[sub_resource type="Animation" id="Animation_Jump_Land"]
+resource_name = "Jump_Land"
+length = 0.3
+loop_mode = 0
+# User to add tracks and keyframes (landing impact pose)
+
+[sub_resource type="Animation" id="Animation_Kick_RightFoot"]
+resource_name = "Kick_RightFoot"
+length = 0.5
+loop_mode = 0
+# User to add tracks for Hips, Spine, RightLeg, RightFoot and set keyframes
+
+[sub_resource type="Animation" id="Animation_Dribble_Loop"]
+resource_name = "Dribble_Loop"
+length = 1.0
+loop_mode = 1
+# User to add tracks for subtle leg/foot movements
+
+[sub_resource type="Animation" id="Animation_Slide_Tackle"]
+resource_name = "Slide_Tackle"
+length = 0.8
+loop_mode = 0
+# User to add tracks for body sliding pose
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_new"]
+_data = {
+"Dribble_Loop": SubResource("Animation_Dribble_Loop"),
+"Idle": SubResource("Animation_Idle"),
+"Jump_Fall_Loop": SubResource("Animation_Jump_Fall_Loop"),
+"Jump_Land": SubResource("Animation_Jump_Land"),
+"Jump_Start": SubResource("Animation_Jump_Start"),
+"Kick_RightFoot": SubResource("Animation_Kick_RightFoot"),
+"Run": SubResource("Animation_Run"),
+"Slide_Tackle": SubResource("Animation_Slide_Tackle"),
+"Sprint": SubResource("Animation_Sprint"),
+"Walk": SubResource("Animation_Walk")
+}
 
 # Polycount estimate with new settings:
 # Body (Capsule 10seg,1ring): ~40-60 tris

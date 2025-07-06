@@ -1,7 +1,105 @@
-[gd_scene load_steps=8 format=3 uid="uid://c5y8qm7n2k1p5"]
+[gd_scene load_steps=21 format=3 uid="uid://c5y8qm7n2k1p5"]
 
 [ext_resource type="Script" path="res://scripts/player_3d/player_3d_controller.gd" id="1_zxcvb"]
 [ext_resource type="PackedScene" uid="uid://d0j2c2x0qjswk" path="res://scenes/player/PlayerModel3D.tscn" id="2_model"]
+
+
+# --- AnimationTree SubResources Start ---
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_Idle"]
+animation = "Idle"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_Jump_Start"]
+animation = "Jump_Start"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_Jump_Fall_Loop"]
+animation = "Jump_Fall_Loop"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_Jump_Land"]
+animation = "Jump_Land" # Will need a transition to this from Falling
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_Kick"]
+animation = "Kick_RightFoot"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_Slide"]
+animation = "Slide_Tackle"
+
+[sub_resource type="AnimationNodeBlendSpace1D" id="AnimationNodeBlendSpace1D_Movement"]
+blend_point_0/node = SubResource("AnimationNodeAnimation_Idle") # Re-use Idle node for speed 0
+blend_point_0/pos = 0.0
+blend_point_1/node = SubResource("AnimationNodeAnimation_Walk_Ref")
+blend_point_1/pos = 1.0
+blend_point_2/node = SubResource("AnimationNodeAnimation_Run_Ref")
+blend_point_2/pos = 2.0
+min_space = 0.0
+max_space = 2.0 # Idle (0) to Walk (1) to Run (2)
+snap = 0.1
+value_label = "speed"
+
+# Need AnimationNodeAnimation resources for Walk and Run to link them in BlendSpace1D
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_Walk_Ref"]
+animation = "Walk"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_Run_Ref"]
+animation = "Run"
+# Sprint can be handled by increasing speed_scale of Run animation or a separate point if anim exists
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="Transition_Idle_to_Moving"]
+# switch_mode = 0 # Immediate
+# advance_mode = 0 # Disabled, use condition
+# advance_condition = "is_moving" # Will be set from script
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="Transition_Moving_to_Idle"]
+# advance_condition = "is_idle"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="Transition_Any_to_JumpStart"]
+# switch_mode = 0 # Immediate
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="Transition_JumpStart_to_Falling"]
+switch_mode = 2 # AtEnd
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="Transition_Falling_to_Land"]
+# advance_condition = "is_on_floor"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="Transition_Land_to_Idle"]
+switch_mode = 2 # AtEnd
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="Transition_Any_to_Kick"]
+# switch_mode = 0 # Immediate
+# advance_mode = 2 # Auto (resets to entry after finishing) - or handle reset manually
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="Transition_Any_to_Slide"]
+# switch_mode = 0
+# advance_mode = 2
+
+
+[sub_resource type="AnimationNodeStateMachine" id="AnimationNodeStateMachine_main"]
+states/Idle/node = SubResource("AnimationNodeAnimation_Idle")
+states/Idle/position = Vector2(200, 100)
+states/Moving/node = SubResource("AnimationNodeBlendSpace1D_Movement") # Movement BlendSpace
+states/Moving/position = Vector2(400, 100)
+states/Jumping/node = SubResource("AnimationNodeAnimation_Jump_Start")
+states/Jumping/position = Vector2(400, 0)
+states/Falling/node = SubResource("AnimationNodeAnimation_Jump_Fall_Loop")
+states/Falling/position = Vector2(600, 0)
+states/Landing/node = SubResource("AnimationNodeAnimation_Jump_Land") # Added Landing state
+states/Landing/position = Vector2(600, 100)
+states/Kicking/node = SubResource("AnimationNodeAnimation_Kick")
+states/Kicking/position = Vector2(400, 200)
+states/Sliding/node = SubResource("AnimationNodeAnimation_Slide")
+states/Sliding/position = Vector2(600, 200)
+transitions = ["Idle", "Moving", SubResource("Transition_Idle_to_Moving"), "Moving", "Idle", SubResource("Transition_Moving_to_Idle"), "Jumping", "Falling", SubResource("Transition_JumpStart_to_Falling"), "Falling", "Landing", SubResource("Transition_Falling_to_Land"), "Landing", "Idle", SubResource("Transition_Land_to_Idle")]
+# More transitions: Start->Idle, Moving->Jumping, Idle->Jumping, etc.
+# For Any->Action transitions (Kick, Slide), these are typically handled by `travel()` from script
+# rather than explicit "Any" state transitions in the graph for simplicity here.
+# Start node will be Idle.
+graph_offset = Vector2(-100, -50)
+
+[sub_resource type="AnimationNodeStateMachinePlayback" id="AnimationNodeStateMachinePlayback_main"]
+# This is an internal resource, usually created automatically by AnimationTree.
+
+# --- AnimationTree SubResources End ---
+
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.4
@@ -41,6 +139,13 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0) # Origin at the play
 # The PlayerModel3D.tscn should be built with its origin at the character's feet.
 # And its internal elements (like Skeleton3D) positioned accordingly.
 # For example, if Hips bone is at y=0.9 within PlayerModel3D.tscn, it will align correctly.
+
+[node name="AnimationTree" type="AnimationTree" parent="PlayerModel"]
+tree_root = SubResource("AnimationNodeStateMachine_main")
+anim_player = NodePath("../PlayerModel3D_Instance/AnimationPlayer") # Points to AnimationPlayer in the instanced scene
+active = true
+parameters/MovementBlend/blend_position = 0.0 # For BlendSpace1D, float
+parameters/StateMachine/playback = SubResource("AnimationNodeStateMachinePlayback_main")
 
 [node name="KickArea3D" type="Area3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)

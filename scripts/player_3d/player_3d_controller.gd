@@ -54,11 +54,30 @@ var ball_node: RigidBody3D = null
 
 @onready var player_model: Node3D = $PlayerModel
 @onready var player_model_instance: Node3D = $PlayerModel/PlayerModel3D_Instance # Reference to the actual model scene instance
+@onready var animation_tree: AnimationTree = $PlayerModel/AnimationTree
 @onready var kick_area_3d = $KickArea3D
 @onready var dribble_area_3d: Area3D = $DribbleArea3D if has_node("DribbleArea3D") else null
 @onready var camera_3d = get_viewport().get_camera_3d() # Assuming camera is available for human player
 @onready var kick_sound: AudioStreamPlayer3D = $KickSound if has_node("KickSound") else null
 # @onready var player_number_label: Label3D = $PlayerModel/Skeleton3D/PlayerNumberLabel # Will be set up in PlayerModel3D.tscn
+
+# Animation States (enum or const strings for clarity)
+const ANIM_STATE_IDLE = "Idle"
+const ANIM_STATE_MOVING = "Moving"
+const ANIM_STATE_JUMPING = "Jumping"
+const ANIM_STATE_FALLING = "Falling"
+const ANIM_STATE_LANDING = "Landing"
+const ANIM_STATE_KICKING = "Kicking"
+const ANIM_STATE_SLIDING = "Sliding"
+
+@export_group("Animation Settings")
+@export var lean_angle_max: float = 15.0 # Max lean angle in degrees
+@export var arm_swing_amplitude: float = 30.0 # Not used yet
+@export var foot_ik_enabled: bool = true # Not used yet
+# Base speeds for animations, used to scale animation speed if needed
+@export var walk_anim_speed_val: float = 1.0 # Corresponds to blend_position 1.0 in MovementBlend
+@export var run_anim_speed_val: float = 2.0  # Corresponds to blend_position 2.0 in MovementBlend
+
 
 var current_look_direction = Vector3.FORWARD # Used for model rotation
 var kick_charge_start_time: float = 0.0
@@ -95,6 +114,94 @@ func _physics_process(delta):
 		_ai_physics_process(delta)
 	else:
 		_human_physics_process(delta)
+
+	# Update animations for both human and AI after their physics are processed
+	if is_instance_valid(animation_tree) and animation_tree.active:
+		_update_animation_parameters(delta)
+
+func _update_animation_parameters(delta):
+	if not is_instance_valid(animation_tree) or not animation_tree.active:
+		return
+
+	var state_machine = animation_tree["parameters/StateMachine/playback"]
+	var current_speed = velocity.horizontal().length()
+	var normalized_speed = 0.0
+	if SPEED > 0.001: # Avoid division by zero
+		normalized_speed = clamp(current_speed / SPEED, 0.0, run_anim_speed_val) # Max blend is run_anim_speed_val (2.0)
+
+	animation_tree["parameters/MovementBlend/blend_position"] = normalized_speed
+
+	# State machine logic
+	if not is_on_floor():
+		if state_machine.get_current_node() != ANIM_STATE_JUMPING and state_machine.get_current_node() != ANIM_STATE_FALLING:
+			# This check is a bit broad, might need refinement if player can kick/slide in air
+			if velocity.y > 0: # Check if actually moving up for jump start
+				state_machine.travel(ANIM_STATE_JUMPING)
+			else:
+				state_machine.travel(ANIM_STATE_FALLING) # Or directly to falling if already going down
+	else: # On floor
+		if state_machine.get_current_node() == ANIM_STATE_FALLING or state_machine.get_current_node() == ANIM_STATE_JUMPING:
+			state_machine.travel(ANIM_STATE_LANDING) # Play landing animation
+		elif state_machine.get_current_node() == ANIM_STATE_LANDING and state_machine.is_playing(): # Check if Landing anim is still playing
+			pass # Wait for landing to finish (it transitions to Idle via AnimationTree)
+		elif state_machine.get_current_node() == ANIM_STATE_KICKING and state_machine.is_playing():
+			pass # Wait for kick to finish
+		elif state_machine.get_current_node() == ANIM_STATE_SLIDING and state_machine.is_playing():
+			pass # Wait for slide to finish
+		else: # Default to Idle or Moving based on speed
+			if current_speed > 0.1: # Threshold to consider moving
+				if state_machine.get_current_node() != ANIM_STATE_MOVING:
+					state_machine.travel(ANIM_STATE_MOVING)
+			else:
+				if state_machine.get_current_node() != ANIM_STATE_IDLE:
+					state_machine.travel(ANIM_STATE_IDLE)
+
+	# Procedural Lean
+	if is_instance_valid(player_model_instance):
+		var skeleton = player_model_instance.get_node_or_null("Skeleton3D") as Skeleton3D
+		if skeleton:
+			var spine_bone_id = skeleton.find_bone("Spine")
+			if spine_bone_id != -1:
+				# Simple lean based on horizontal velocity change ( बैंकिंग)
+				# This is a very basic example. More sophisticated lean would consider input or angular velocity.
+				var desired_lean_target = 0.0
+				if current_speed > 0.1:
+					var velocity_right = velocity.cross(Vector3.UP).normalized()
+					var look_right = current_look_direction.cross(Vector3.UP).normalized()
+					# Calculate lean based on difference between velocity and look direction (simplified turn indication)
+					# Or, more simply, lean into the direction of acceleration if using analog input
+					# For now, a placeholder: if velocity is to the right of look_direction, lean right, etc.
+					var right_dot_vel = look_right.dot(velocity.normalized()) # If positive, velocity is to the right of facing
+					desired_lean_target = right_dot_vel * lean_angle_max
+
+					# Smoother lean based on input could also work.
+					# var input_dir_vec = Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
+					# desired_lean_target = input_dir_vec.x * -lean_angle_max # Lean opposite to horizontal input if strafing
+
+				# Smoothly interpolate to the target lean
+				var current_lean_rad = skeleton.get_bone_pose_rotation(spine_bone_id).get_euler().z # Assuming Z is the lean axis
+				var target_lean_rad = deg_to_rad(desired_lean_target)
+				var new_lean_rad = lerp_angle(current_lean_rad, target_lean_rad, delta * 5.0) # Adjust 5.0 for lean speed
+
+				# Get current bone pose (animation may have set it)
+				var current_bone_transform = skeleton.get_bone_pose(spine_bone_id)
+				var anim_rotation = current_bone_transform.basis.get_rotation_quaternion()
+
+				# Create lean quaternion (around Z axis of the bone's parent space, typically character's forward)
+				# This is tricky because bone_pose is in bone's local space relative to its rest.
+				# For a simpler model, Spine's Z axis could be its local "roll" axis.
+				# We'll assume the Spine bone's local Z-axis is suitable for leaning side-to-side.
+				var lean_quat = Quaternion(Vector3.FORWARD, new_lean_rad) # Local Z axis for lean
+
+				# To make it additive to animation, we'd need to combine anim_rotation with lean_quat.
+				# For now, let's try setting it directly, which might override animation's spine rotation on Z.
+				# A better method involves dedicated lean bones or additive animation layers.
+				# skeleton.set_bone_pose_rotation(spine_bone_id, lean_quat)
+
+				# More robust: Decompose, apply lean, recompose.
+				var new_basis = Basis.from_euler(Vector3(current_bone_transform.basis.get_euler().x, current_bone_transform.basis.get_euler().y, new_lean_rad))
+				skeleton.set_bone_pose_rotation(spine_bone_id, new_basis.get_rotation_quaternion())
+
 
 func _human_physics_process(delta):
 	var effective_gravity = gravity * custom_gravity_scale
@@ -261,6 +368,11 @@ func _handle_dribbling(delta: float, p_move_direction_input: Vector2):
 
 
 func _handle_kick(charge_duration: float):
+	# Trigger Kick Animation
+	if is_instance_valid(animation_tree) and animation_tree.active:
+		var state_machine = animation_tree["parameters/StateMachine/playback"]
+		state_machine.travel(ANIM_STATE_KICKING)
+
 	var charge_ratio = clamp(charge_duration / kick_hold_time_for_max_force, 0.0, 1.0)
 	var current_kick_force = lerp(min_kick_force, max_kick_force, charge_ratio)
 	# print(f"Kick force: {current_kick_force} (Charge: {charge_ratio*100}%)")
@@ -383,7 +495,7 @@ func _apply_visual_variations():
 # Called when the node enters the scene tree for the first time.
 func _ready():
 	# It's good practice to wait for children to be ready if relying on them,
-	# but @onready should handle player_model_instance.
+	# but @onready should handle player_model_instance and animation_tree.
 	# If issues arise, could use `await owner.ready` or `call_deferred` for setups.
 
 	# Default color if not set otherwise
@@ -391,6 +503,21 @@ func _ready():
 	_apply_visual_variations() # Apply initial scale
 	set_player_number("10") # Example player number
 	set_hairstyle(0) # Apply default hairstyle (shows the default mesh)
+
+	# Initialize animation tree state if it's valid
+	if is_instance_valid(animation_tree) and animation_tree.active:
+		# Set initial state, e.g. to Idle
+		# The AnimationTree in the scene is set to active=true and has a start_node defined in the StateMachine (Idle)
+		# So, direct travel() might not be needed here unless overriding initial scene setup.
+		# animation_tree["parameters/StateMachine/playback"].start(ANIM_STATE_IDLE) # Or .travel(ANIM_STATE_IDLE)
+		# Ensure MovementBlend is initialized
+		animation_tree["parameters/MovementBlend/blend_position"] = 0.0
+	else:
+		if not is_instance_valid(animation_tree):
+			push_warning("AnimationTree node not found or not ready at _ready().")
+		elif not animation_tree.active:
+			push_warning("AnimationTree is not active at _ready().")
+
 
 	# Add to player group for potential interactions
 	add_to_group("players")
