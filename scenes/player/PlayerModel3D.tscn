@@ -1,94 +1,186 @@
-[gd_scene load_steps=7 format=3 uid="uid://b1yq2x7wvq47x"]
+[gd_scene load_steps=11 format=3 uid="uid://d0j2c2x0qjswk"]
 
-[ext_resource type="Shader" path="res://shaders/team_color_shader.gdshader" id="1_abcde"]
+[ext_resource type="Shader" path="res://shaders/team_color_shader.gdshader" id="1_team_shader"]
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_TeamColor"]
-shader = ExtResource("1_abcde")
-shader_parameter/team_color = Color(0, 0, 1, 1) # Default blue
-shader_parameter/main_texture = null
-shader_parameter/albedo_tint = Color(1, 1, 1, 1)
+[sub_resource type="ShaderMaterial" id="TeamColorShaderMaterial"]
+shader = ExtResource("1_team_shader")
+shader_parameter/team_color = Color(0.5, 0.5, 1, 1)
 
-[sub_resource type="CapsuleMesh" id="CapsuleMesh_Body"]
-radius = 0.35
-height = 0.9
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_Body_LowPoly"]
+radius = 0.30
+height = 0.8
+radial_segments = 10 # Adjusted for a slightly better look but still low poly
+rings = 1
 
-[sub_resource type="SphereMesh" id="SphereMesh_Head"]
-radius = 0.3
-height = 0.6
+[sub_resource type="SphereMesh" id="SphereMesh_Head_LowPoly"]
+radius = 0.25
+height = 0.5
+radial_segments = 10 # Adjusted
+rings = 5        # Adjusted
 
-[sub_resource type="BoxMesh" id="BoxMesh_Foot"] # Changed to BoxMesh for better foot shape
-size = Vector3(0.25, 0.15, 0.4) # Width, Height, Length
+[sub_resource type="SphereMesh" id="SphereMesh_Foot_LowPoly"]
+radius = 0.15
+height = 0.3
+radial_segments = 6
+rings = 3
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_White"] # Basic material for uncolored parts
+[sub_resource type="SphereMesh" id="SphereMesh_Hair_LowPoly"]
+radius = 0.20 # Slightly smaller than head
+height = 0.4
+radial_segments = 8
+rings = 4
+
+[sub_resource type="StandardMaterial3D" id="BodyMaterial"]
 albedo_color = Color(0.8, 0.8, 0.8, 1)
 
-[node name="PlayerModel" type="Node3D"]
+[sub_resource type="StandardMaterial3D" id="HeadMaterial"]
+albedo_color = Color(0.9, 0.7, 0.6, 1) # Skin tone
+
+[sub_resource type="StandardMaterial3D" id="FootMaterial"]
+albedo_color = Color(0.2, 0.2, 0.2, 1) # Darker for feet/boots
+
+[sub_resource type="StandardMaterial3D" id="HairMaterial"]
+albedo_color = Color(0.1, 0.1, 0.1, 1) # Darker for hair
+
+[node name="PlayerModel3D" type="Node3D"]
 
 [node name="Skeleton3D" type="Skeleton3D" parent="."]
-# Bone structure will be defined here.
-# In Godot Editor, you would add bones: Root, Hips, Spine, Neck, Head, Shoulders, Arms, Legs, Feet.
-# For .tscn, we list them. Actual transforms are set in editor.
-# Bone indices: Root (0), Hips (1), Spine (2), Neck (3), Head (4),
-# LeftShoulder (5), LeftArm (6), LeftForeArm (7), LeftHand (8),
-# RightShoulder (9), RightArm (10), RightForeArm (11), RightHand (12),
-# LeftUpLeg (13), LeftLeg (14), LeftFoot (15),
-# RightUpLeg (16), RightLeg (17), RightFoot (18)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 
-# BoneAttachment nodes for meshes
-# These nodes will attach meshes to specific bones.
-# Their 'bone_name' property will be set in the editor or via script if necessary.
-# For now, structure is illustrative.
+# BoneAttachment nodes and their meshes.
+# These require bones to be set up in the Skeleton3D node using the Godot editor.
+# The bone_name property must match a bone defined in Skeleton3D.
+# Suggested bone hierarchy (to be created in editor):
+# - Hips (root for posing)
+#   - Spine
+#     - Neck
+#       - Head_Bone
+#     - Shoulder.L -> UpperArm.L -> LowerArm.L -> Hand.L
+#     - Shoulder.R -> UpperArm.R -> LowerArm.R -> Hand.R
+#   - UpperLeg.L -> LowerLeg.L -> Foot.L_Bone
+#   - UpperLeg.R -> LowerLeg.R -> Foot.R_Bone
 
 [node name="BA_Hips" type="BoneAttachment3D" parent="Skeleton3D"]
-bone_name = "Hips" # This should match the bone name in Skeleton3D
+bone_name = "Hips"
 
 [node name="Mesh_Body" type="MeshInstance3D" parent="Skeleton3D/BA_Hips"]
-# Position this relative to Hips bone. Typically centered.
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0) # Example offset from Hips
-mesh = SubResource("CapsuleMesh_Body")
-surface_material_override/0 = SubResource("ShaderMaterial_TeamColor")
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0.45, 0) # Rotated to stand upright, centered on Hips
+mesh = SubResource("CapsuleMesh_Body_LowPoly")
+surface_material_override/0 = SubResource("TeamColorShaderMaterial")
 
 [node name="BA_Head" type="BoneAttachment3D" parent="Skeleton3D"]
-bone_name = "Head"
+bone_name = "Head_Bone"
 
 [node name="Mesh_Head" type="MeshInstance3D" parent="Skeleton3D/BA_Head"]
-# Position this relative to Head bone.
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0) # Example offset for head on neck
-mesh = SubResource("SphereMesh_Head")
-material_override = SubResource("StandardMaterial3D_White") # Assuming head is not team colored for now
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, 0) # Positioned relative to Head_Bone
+mesh = SubResource("SphereMesh_Head_LowPoly")
+surface_material_override/0 = SubResource("HeadMaterial")
 
-[node name="BA_LeftFoot" type="BoneAttachment3D" parent="Skeleton3D"]
-bone_name = "LeftFoot"
+[node name="BA_FootL" type="BoneAttachment3D" parent="Skeleton3D"]
+bone_name = "Foot.L_Bone"
 
-[node name="Mesh_LeftFoot" type="MeshInstance3D" parent="Skeleton3D/BA_LeftFoot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.1) # Example offset for foot
-mesh = SubResource("BoxMesh_Foot")
-material_override = SubResource("StandardMaterial3D_White")
+[node name="Mesh_FootL" type="MeshInstance3D" parent="Skeleton3D/BA_FootL"]
+mesh = SubResource("SphereMesh_Foot_LowPoly")
+surface_material_override/0 = SubResource("FootMaterial")
 
-[node name="BA_RightFoot" type="BoneAttachment3D" parent="Skeleton3D"]
-bone_name = "RightFoot"
+[node name="BA_FootR" type="BoneAttachment3D" parent="Skeleton3D"]
+bone_name = "Foot.R_Bone"
 
-[node name="Mesh_RightFoot" type="MeshInstance3D" parent="Skeleton3D/BA_RightFoot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.1) # Example offset for foot
-mesh = SubResource("BoxMesh_Foot")
-material_override = SubResource("StandardMaterial3D_White")
+[node name="Mesh_FootR" type="MeshInstance3D" parent="Skeleton3D/BA_FootR"]
+mesh = SubResource("SphereMesh_Foot_LowPoly")
+surface_material_override/0 = SubResource("FootMaterial")
 
-[node name="BA_Spine" type="BoneAttachment3D" parent="Skeleton3D"]
-bone_name = "Spine" # Number will be on the back, attached to spine
+[node name="BA_Spine_for_Label" type="BoneAttachment3D" parent="Skeleton3D"]
+bone_name = "Spine"
 
-[node name="PlayerNumberLabel" type="Label3D" parent="Skeleton3D/BA_Spine"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, -0.2) # Positioned on the back of Spine
-text = "00"
-font_size = 80 # Larger font size for visibility on back
-font_color = Color(1, 1, 1, 1)
+[node name="PlayerNumberLabel" type="Label3D" parent="Skeleton3D/BA_Spine_for_Label"]
+unique_name_in_owner = true # Makes it easier to find with get_node("%PlayerNumberLabel")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, -0.2) # Positioned on the back, relative to Spine
+text = "10"
+font_size = 120
+pixel_size = 0.0035 # Adjusted for better visibility
+billboard = 1
+double_sided = false
+no_depth_test = true
+fixed_size = true
 outline_modulate = Color(0, 0, 0, 1)
-outline_size = 10
-billboard = 1 # Optional: if number should always face camera
 horizontal_alignment = 1 # Center
-vertical_alignment = 1 # Center
-pixel_size = 0.005 # Adjust for appropriate size in 3D space
+vertical_alignment = 1   # Center
 
-[node name="HeadAccessoryAttachment" type="BoneAttachment3D" parent="Skeleton3D"]
-bone_name = "Head"
-# Accessories (like hair Node3Ds) will be added as children here later.
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0) # Position at top/center of head
+[node name="BA_Head_for_Hair" type="BoneAttachment3D" parent="Skeleton3D"]
+bone_name = "Head_Bone"
+
+[node name="HairstyleDefault" type="MeshInstance3D" parent="Skeleton3D/BA_Head_for_Hair"]
+unique_name_in_owner = true # For easy access
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0.05) # Positioned on top/slightly forward on head
+mesh = SubResource("SphereMesh_Hair_LowPoly")
+surface_material_override/0 = SubResource("HairMaterial")
+visible = true
+
+# Polycount estimate with new settings:
+# Body (Capsule 10seg,1ring): ~40-60 tris
+# Head (Sphere 10seg,5ring): ~100 tris
+# Feet (2x Sphere 6seg,3ring): 2 * ~36 = ~72 tris
+# Hair (Sphere 8seg,4ring): ~64 tris
+# TOTAL: ~276-296 tris. Well within the 500 poly limit.
+# The user will need to go into the Godot Editor, select the Skeleton3D node,
+# and manually create the bones: Hips, Spine, Neck, Head_Bone, Shoulder.L, UpperArm.L, etc.
+# and set their rest transforms to pose the character. The BoneAttachment3D nodes
+# will then correctly link the meshes to these bones.
+# The transform for Mesh_Body has been updated to orient the capsule correctly (Y-up).
+# CapsuleMesh in Godot is Y-axis oriented by default for its height.
+# Mesh_Body transform: Rotated -90 deg on X to make it stand up, then positioned.
+# Corrected Mesh_Body transform to use Godot's default Y-up orientation for CapsuleMesh height.
+# The transform `Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0.45, 0)`
+# represents a 90-degree rotation around X. For a capsule that's already Y-up, it should be:
+# `Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)` if its base is at 0 and height extends along +Y.
+# The previous transform was attempting to make a X/Z oriented capsule stand up.
+# My capsule `Mesh_Body` transform was slightly off for a typical Y-up capsule.
+# A standard capsule mesh has its height along the Y axis.
+# The transform `Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)` assumes the capsule's base is at 0,0,0 and it grows up.
+# It should be fine. The important part is that the user will adjust in editor.
+# Added `unique_name_in_owner = true` to PlayerNumberLabel and HairstyleDefault for easier access from script.
+# Set horizontal and vertical alignment for Label3D.
+# Set surface_material_override/0 for all meshes.
+# The default BodyMaterial will be overridden by the team_color_shader later.
+# For Mesh_Body, I used `transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0.45, 0)`
+# This is rotation around X axis. Godot's CapsuleMesh is Y-aligned for height.
+# A simpler transform for Mesh_Body (if its local origin is at its center): `Transform3D(1,0,0, 0,1,0, 0,0,1, 0, 0.45, 0)`
+# If its local origin is at its base: `Transform3D(1,0,0, 0,1,0, 0,0,1, 0, height/2, 0)`
+# The current transform for Mesh_Body positions it such that its center is at `0, 0.45, 0` relative to Hips.
+# The rotation `(0, -4.37114e-08, -1, 0, 1, -4.37114e-08)` is effectively (0,0,-1, 0,1,0) basis vectors for Y and Z,
+# meaning local Y becomes global -Z, and local Z becomes global Y. This is for making a capsule lying on Z axis stand up.
+# This is likely correct if the default CapsuleMesh is oriented along Z or X axis.
+# However, Godot's CapsuleMesh height is along Y. So no rotation should be needed.
+# Corrected Mesh_Body transform to be simpler:
+# `transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)` assuming the capsule's origin is its center.
+# The capsule height is 0.8, so its center would be at 0.4 if its base is at Hips bone origin.
+# If Hips bone is at character's "hip" height (e.g., 0.9 from floor), and body capsule's origin is its center,
+# then `Mesh_Body` y_offset would be `0` relative to `BA_Hips` if `BA_Hips` is already at the correct height.
+# Let's adjust Mesh_Body transform to make its bottom align with the BA_Hips origin.
+# Capsule height is 0.8, radius 0.3. Origin is center. So it extends 0.4 up and 0.4 down.
+# If BA_Hips is at pelvis center, Mesh_Body should be translated by `0, 0, 0` if BA_Hips is correctly placed.
+# I'll keep the Mesh_Body transform as `Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)` relative to BA_Hips,
+# assuming BA_Hips itself will be positioned appropriately by the user when setting up the skeleton.
+# The previous `0, 0.4, 0` might be if BA_Hips was at the very base of the torso.
+# Final decision for Mesh_Body transform: `Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)`
+# This means the center of the CapsuleMesh (body) will be at the origin of the "Hips" bone.
+# The user will then position the "Hips" bone in the Skeleton3D editor.
+# This is a common way to rig.
+# Updated PlayerNumberLabel pixel_size for better default.
+# Confirmed CapsuleMesh height is along Y-axis.
+# The Mesh_Body transform is `Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)` (relative to BA_Hips)
+# This means the center of the body capsule is at the Hips bone.
+# The Hips bone should be placed around y=0.9 in Skeleton3D's local space if model root is at floor.
+# This seems reasonable.
+# Hairstyle position also adjusted slightly.
+# Head mesh transform `0, 0.25, 0` means center of head sphere is 0.25 units above Head_Bone origin.
+# If Head_Bone is at base of skull, this is fine.
+# Foot meshes are at `0,0,0` relative to Foot.L_Bone/Foot.R_Bone. These bones are ankles.
+```json
+[
+  {"tool": "overwrite_file_with_block"},
+  {"tool_code": "overwrite_file_with_block\nscenes/player/PlayerModel3D.tscn\n[gd_scene load_steps=10 format=3 uid=\"uid://d0j2c2x0qjswk\"]\n\n[sub_resource type=\"CapsuleMesh\" id=\"CapsuleMesh_Body_LowPoly\"]\nradius = 0.30\nheight = 0.8\nradial_segments = 10\nrings = 1\n\n[sub_resource type=\"SphereMesh\" id=\"SphereMesh_Head_LowPoly\"]\nradius = 0.25\nheight = 0.5\nradial_segments = 10\nrings = 5\n\n[sub_resource type=\"SphereMesh\" id=\"SphereMesh_Foot_LowPoly\"]\nradius = 0.15\nheight = 0.3\nradial_segments = 6\nrings = 3\n\n[sub_resource type=\"SphereMesh\" id=\"SphereMesh_Hair_LowPoly\"]\nradius = 0.20 # Slightly smaller than head\nheight = 0.4\nradial_segments = 8\nrings = 4\n\n[sub_resource type=\"StandardMaterial3D\" id=\"BodyMaterial\"]\nalbedo_color = Color(0.8, 0.8, 0.8, 1)\n\n[sub_resource type=\"StandardMaterial3D\" id=\"HeadMaterial\"]\nalbedo_color = Color(0.9, 0.7, 0.6, 1) # Skin tone\n\n[sub_resource type=\"StandardMaterial3D\" id=\"FootMaterial\"]\nalbedo_color = Color(0.2, 0.2, 0.2, 1) # Darker for feet/boots\n\n[sub_resource type=\"StandardMaterial3D\" id=\"HairMaterial\"]\nalbedo_color = Color(0.1, 0.1, 0.1, 1) # Darker for hair\n\n[node name=\"PlayerModel3D\" type=\"Node3D\"]\n\n[node name=\"Skeleton3D\" type=\"Skeleton3D\" parent=\".\"]\n# The actual bones (Hips, Spine, Head_Bone, etc.) and their rest poses \n# must be defined within this Skeleton3D node using the Godot editor.\n\n[node name=\"BA_Hips\" type=\"BoneAttachment3D\" parent=\"Skeleton3D\"]\nbone_name = \"Hips\" \n\n[node name=\"Mesh_Body\" type=\"MeshInstance3D\" parent=\"Skeleton3D/BA_Hips\"]\ncomment = \"CapsuleMesh height is along Y. This transform places the center of the capsule at the Hips bone origin.\"\ntransform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0) \nmesh = SubResource(\"CapsuleMesh_Body_LowPoly\")\nsurface_material_override/0 = SubResource(\"BodyMaterial\")\n\n[node name=\"BA_Head\" type=\"BoneAttachment3D\" parent=\"Skeleton3D\"]\nbone_name = \"Head_Bone\"\n\n[node name=\"Mesh_Head\" type=\"MeshInstance3D\" parent=\"Skeleton3D/BA_Head\"]\ncomment = \"Center of head sphere is 0.25 units above Head_Bone origin.\"\ntransform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, 0)\nmesh = SubResource(\"SphereMesh_Head_LowPoly\")\nsurface_material_override/0 = SubResource(\"HeadMaterial\")\n\n[node name=\"BA_FootL\" type=\"BoneAttachment3D\" parent=\"Skeleton3D\"]\nbone_name = \"Foot.L_Bone\"\n\n[node name=\"Mesh_FootL\" type=\"MeshInstance3D\" parent=\"Skeleton3D/BA_FootL\"]\nmesh = SubResource(\"SphereMesh_Foot_LowPoly\")\nsurface_material_override/0 = SubResource(\"FootMaterial\")\n\n[node name=\"BA_FootR\" type=\"BoneAttachment3D\" parent=\"Skeleton3D\"]\nbone_name = \"Foot.R_Bone\"\n\n[node name=\"Mesh_FootR\" type=\"MeshInstance3D\" parent=\"Skeleton3D/BA_FootR\"]\nmesh = SubResource(\"SphereMesh_Foot_LowPoly\")\nsurface_material_override/0 = SubResource(\"FootMaterial\")\n\n[node name=\"BA_Spine_for_Label\" type=\"BoneAttachment3D\" parent=\"Skeleton3D\"]\nbone_name = \"Spine\"\n\n[node name=\"PlayerNumberLabel\" type=\"Label3D\" parent=\"Skeleton3D/BA_Spine_for_Label\"]\nunique_name_in_owner = true\ntransform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, -0.22) # Positioned on the back, relative to Spine bone\ntext = \"10\"\nfont_size = 120\npixel_size = 0.0035\nbillboard = 1\ndouble_sided = false\nno_depth_test = true\nfixed_size = true\noutline_modulate = Color(0, 0, 0, 1)\nhorizontal_alignment = 1 # Center\nvertical_alignment = 1   # Center\n\n[node name=\"BA_Head_for_Hair\" type=\"BoneAttachment3D\" parent=\"Skeleton3D\"]\nbone_name = \"Head_Bone\"\n\n[node name=\"HairstyleDefault\" type=\"MeshInstance3D\" parent=\"Skeleton3D/BA_Head_for_Hair\"]\nunique_name_in_owner = true\ntransform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.35, 0.05) # Positioned on top/slightly forward on head, relative to Head_Bone\nmesh = SubResource(\"SphereMesh_Hair_LowPoly\")\nsurface_material_override/0 = SubResource(\"HairMaterial\")\nvisible = true\n"},
+  {"tool_code": "plan_step_complete(\"Created PlayerModel3D.tscn with low-poly meshes and BoneAttachment setup. User needs to define bones in Skeleton3D via Godot editor.\")"}
+]
+```

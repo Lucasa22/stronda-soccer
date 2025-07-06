@@ -1,6 +1,7 @@
 [gd_scene load_steps=8 format=3 uid="uid://c5y8qm7n2k1p5"]
 
 [ext_resource type="Script" path="res://scripts/player_3d/player_3d_controller.gd" id="1_zxcvb"]
+[ext_resource type="PackedScene" uid="uid://d0j2c2x0qjswk" path="res://scenes/player/PlayerModel3D.tscn" id="2_model"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.4
@@ -34,28 +35,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("CapsuleShape3D_player")
 
 [node name="PlayerModel" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0) # Positioned at the base of the capsule shape
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0) # Origin at the player's feet level
 
-[node name="Skeleton3D" type="Skeleton3D" parent="PlayerModel"]
-# Bones will be added here via editor or script, transforms are illustrative
-# For now, just creating the nodes. Bone poses will be set up in PlayerModel3D.tscn
-
-[node name="Mesh_Body" type="MeshInstance3D" parent="PlayerModel/Skeleton3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0) # Centered on its own height
-mesh = SubResource("CapsuleMesh_Body")
-# Material will be handled by the team_color_shader later
-
-[node name="Mesh_Head" type="MeshInstance3D" parent="PlayerModel/Skeleton3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0) # Positioned above the body capsule
-mesh = SubResource("SphereMesh_Head")
-
-[node name="Mesh_LeftFoot" type="MeshInstance3D" parent="PlayerModel/Skeleton3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.2, -0.15, 0) # Positioned for left foot
-mesh = SubResource("SphereMesh_Foot")
-
-[node name="Mesh_RightFoot" type="MeshInstance3D" parent="PlayerModel/Skeleton3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, -0.15, 0) # Positioned for right foot
-mesh = SubResource("SphereMesh_Foot")
+[node name="PlayerModel3D_Instance" parent="PlayerModel" instance=ExtResource("2_model")]
+# The PlayerModel3D.tscn should be built with its origin at the character's feet.
+# And its internal elements (like Skeleton3D) positioned accordingly.
+# For example, if Hips bone is at y=0.9 within PlayerModel3D.tscn, it will align correctly.
 
 [node name="KickArea3D" type="Area3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)

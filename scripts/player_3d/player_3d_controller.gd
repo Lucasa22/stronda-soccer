@@ -52,7 +52,8 @@ var ball_node: RigidBody3D = null
 		if is_inside_tree(): _apply_visual_variations()
 
 
-@onready var player_model: Node3D = $PlayerModel # Updated reference
+@onready var player_model: Node3D = $PlayerModel
+@onready var player_model_instance: Node3D = $PlayerModel/PlayerModel3D_Instance # Reference to the actual model scene instance
 @onready var kick_area_3d = $KickArea3D
 @onready var dribble_area_3d: Area3D = $DribbleArea3D if has_node("DribbleArea3D") else null
 @onready var camera_3d = get_viewport().get_camera_3d() # Assuming camera is available for human player
@@ -310,51 +311,86 @@ func set_player_name(new_name):
 		label.text = new_name
 
 func set_player_color(color: Color):
-	if not is_instance_valid(player_model): return
+	if not is_instance_valid(player_model_instance):
+		push_warning("PlayerModel3D instance is not valid, cannot set player color.")
+		return
 
-	# Assuming the body mesh is correctly pathed within PlayerModel3D.tscn
-	var body_mesh_path = "Skeleton3D/BA_Hips/Mesh_Body" # Corrected path
-	var body_mesh_node = player_model.get_node_or_null(body_mesh_path)
+	# The Mesh_Body is inside PlayerModel3D.tscn, unique name was not set for it, so using path
+	var body_mesh_node = player_model_instance.get_node_or_null("Skeleton3D/BA_Hips/Mesh_Body")
 
 	if body_mesh_node and body_mesh_node is MeshInstance3D:
 		var mesh_instance = body_mesh_node as MeshInstance3D
+		# Ensure the material is a ShaderMaterial, as set up in PlayerModel3D.tscn
 		var mat = mesh_instance.get_surface_override_material(0)
-		if mat is ShaderMaterial:
+		if mat and mat is ShaderMaterial:
 			mat.set_shader_parameter("team_color", color)
 		else:
-			# If no ShaderMaterial exists, or it's a different material, create new and assign
+			# Fallback if material setup was incorrect or changed, though ideally this shouldn't be needed.
+			push_warning("Mesh_Body in PlayerModel3D_Instance does not have the expected ShaderMaterial. Attempting to create and apply.")
 			var new_shader_mat = ShaderMaterial.new()
 			new_shader_mat.shader = load("res://shaders/team_color_shader.gdshader")
-			new_shader_mat.set_shader_parameter("team_color", color)
-			mesh_instance.set_surface_override_material(0, new_shader_mat)
-			# print("Applied new team_color_shader.gdshader")
+			if new_shader_mat.shader: # Check if shader loaded successfully
+				new_shader_mat.set_shader_parameter("team_color", color)
+				mesh_instance.set_surface_override_material(0, new_shader_mat)
+			else:
+				push_error("Failed to load team_color_shader.gdshader for fallback.")
 	else:
-		push_warning("Could not find Mesh_Body at " + body_mesh_path + " to apply color.")
+		push_warning("Could not find Mesh_Body at 'Skeleton3D/BA_Hips/Mesh_Body' in PlayerModel3D_Instance to apply color.")
 
 
 func set_player_number(number: String):
-	# This assumes player_number_label is correctly set up in PlayerModel3D.tscn
-	var player_number_label_path = "Skeleton3D/BA_Spine/PlayerNumberLabel" # Path within PlayerModel3D.tscn
-	var number_label_node = player_model.get_node_or_null(player_number_label_path)
+	if not is_instance_valid(player_model_instance):
+		push_warning("PlayerModel3D instance is not valid, cannot set player number.")
+		return
+
+	var number_label_node = player_model_instance.get_node_or_null("%PlayerNumberLabel")
 	if number_label_node and number_label_node is Label3D:
 		var label = number_label_node as Label3D
 		label.text = number
 	else:
-		push_warning("PlayerNumberLabel not found at path: " + player_number_label_path)
-	# print("Player number set to: ", number) # For debugging
+		push_warning("PlayerNumberLabel not found using unique name '%PlayerNumberLabel' in PlayerModel3D_Instance.")
+
+
+func set_hairstyle(style_id: int): # Added new function
+	if not is_instance_valid(player_model_instance):
+		push_warning("PlayerModel3D instance is not valid, cannot set hairstyle.")
+		return
+
+	var hairstyle_node = player_model_instance.get_node_or_null("%HairstyleDefault")
+	if hairstyle_node and hairstyle_node is MeshInstance3D:
+		if style_id == 0: # Default hairstyle
+			hairstyle_node.visible = true
+		# Example for future:
+		# var hairstyle_alt_node = player_model_instance.get_node_or_null("%HairstyleAlt")
+		# if style_id == 1 and hairstyle_alt_node:
+		#    hairstyle_node.visible = false
+		#    hairstyle_alt_node.visible = true
+		else: # Hide default if other styles are chosen (and not yet implemented) or if style_id is invalid
+			hairstyle_node.visible = false
+			if style_id != 0 : push_warning("Hairstyle ID " + str(style_id) + " selected, but only style 0 (Default) is currently implemented. Hiding default.")
+	else:
+		push_warning("HairstyleDefault node not found or not a MeshInstance3D in PlayerModel3D_Instance.")
+
 
 func _apply_visual_variations():
-	if not is_instance_valid(player_model):
+	if not is_instance_valid(player_model): # player_model is the Node3D container $PlayerModel
+		push_warning("PlayerModel (the container Node3D) is not valid, cannot apply visual variations.")
 		return
+	# Scale the container node. The PlayerModel3D_Instance inside it will scale accordingly.
 	player_model.scale = Vector3(player_width_scale, player_height_scale, player_width_scale)
-	# print(f"Applied visual variations: H={player_height_scale}, W={player_width_scale}")
+	# print(f"Applied visual variations: H={player_height_scale}, W={player_width_scale} to $PlayerModel container")
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
+	# It's good practice to wait for children to be ready if relying on them,
+	# but @onready should handle player_model_instance.
+	# If issues arise, could use `await owner.ready` or `call_deferred` for setups.
+
 	# Default color if not set otherwise
 	set_player_color(Color.BLUE_VIOLET) # Example team color
 	_apply_visual_variations() # Apply initial scale
 	set_player_number("10") # Example player number
+	set_hairstyle(0) # Apply default hairstyle (shows the default mesh)
 
 	# Add to player group for potential interactions
 	add_to_group("players")
