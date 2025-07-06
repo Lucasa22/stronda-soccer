@@ -1,0 +1,94 @@
+[gd_scene load_steps=7 format=3 uid="uid://b1yq2x7wvq47x"]
+
+[ext_resource type="Shader" path="res://shaders/team_color_shader.gdshader" id="1_abcde"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_TeamColor"]
+shader = ExtResource("1_abcde")
+shader_parameter/team_color = Color(0, 0, 1, 1) # Default blue
+shader_parameter/main_texture = null
+shader_parameter/albedo_tint = Color(1, 1, 1, 1)
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_Body"]
+radius = 0.35
+height = 0.9
+
+[sub_resource type="SphereMesh" id="SphereMesh_Head"]
+radius = 0.3
+height = 0.6
+
+[sub_resource type="BoxMesh" id="BoxMesh_Foot"] # Changed to BoxMesh for better foot shape
+size = Vector3(0.25, 0.15, 0.4) # Width, Height, Length
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_White"] # Basic material for uncolored parts
+albedo_color = Color(0.8, 0.8, 0.8, 1)
+
+[node name="PlayerModel" type="Node3D"]
+
+[node name="Skeleton3D" type="Skeleton3D" parent="."]
+# Bone structure will be defined here.
+# In Godot Editor, you would add bones: Root, Hips, Spine, Neck, Head, Shoulders, Arms, Legs, Feet.
+# For .tscn, we list them. Actual transforms are set in editor.
+# Bone indices: Root (0), Hips (1), Spine (2), Neck (3), Head (4),
+# LeftShoulder (5), LeftArm (6), LeftForeArm (7), LeftHand (8),
+# RightShoulder (9), RightArm (10), RightForeArm (11), RightHand (12),
+# LeftUpLeg (13), LeftLeg (14), LeftFoot (15),
+# RightUpLeg (16), RightLeg (17), RightFoot (18)
+
+# BoneAttachment nodes for meshes
+# These nodes will attach meshes to specific bones.
+# Their 'bone_name' property will be set in the editor or via script if necessary.
+# For now, structure is illustrative.
+
+[node name="BA_Hips" type="BoneAttachment3D" parent="Skeleton3D"]
+bone_name = "Hips" # This should match the bone name in Skeleton3D
+
+[node name="Mesh_Body" type="MeshInstance3D" parent="Skeleton3D/BA_Hips"]
+# Position this relative to Hips bone. Typically centered.
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0) # Example offset from Hips
+mesh = SubResource("CapsuleMesh_Body")
+surface_material_override/0 = SubResource("ShaderMaterial_TeamColor")
+
+[node name="BA_Head" type="BoneAttachment3D" parent="Skeleton3D"]
+bone_name = "Head"
+
+[node name="Mesh_Head" type="MeshInstance3D" parent="Skeleton3D/BA_Head"]
+# Position this relative to Head bone.
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0) # Example offset for head on neck
+mesh = SubResource("SphereMesh_Head")
+material_override = SubResource("StandardMaterial3D_White") # Assuming head is not team colored for now
+
+[node name="BA_LeftFoot" type="BoneAttachment3D" parent="Skeleton3D"]
+bone_name = "LeftFoot"
+
+[node name="Mesh_LeftFoot" type="MeshInstance3D" parent="Skeleton3D/BA_LeftFoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.1) # Example offset for foot
+mesh = SubResource("BoxMesh_Foot")
+material_override = SubResource("StandardMaterial3D_White")
+
+[node name="BA_RightFoot" type="BoneAttachment3D" parent="Skeleton3D"]
+bone_name = "RightFoot"
+
+[node name="Mesh_RightFoot" type="MeshInstance3D" parent="Skeleton3D/BA_RightFoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.1) # Example offset for foot
+mesh = SubResource("BoxMesh_Foot")
+material_override = SubResource("StandardMaterial3D_White")
+
+[node name="BA_Spine" type="BoneAttachment3D" parent="Skeleton3D"]
+bone_name = "Spine" # Number will be on the back, attached to spine
+
+[node name="PlayerNumberLabel" type="Label3D" parent="Skeleton3D/BA_Spine"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, -0.2) # Positioned on the back of Spine
+text = "00"
+font_size = 80 # Larger font size for visibility on back
+font_color = Color(1, 1, 1, 1)
+outline_modulate = Color(0, 0, 0, 1)
+outline_size = 10
+billboard = 1 # Optional: if number should always face camera
+horizontal_alignment = 1 # Center
+vertical_alignment = 1 # Center
+pixel_size = 0.005 # Adjust for appropriate size in 3D space
+
+[node name="HeadAccessoryAttachment" type="BoneAttachment3D" parent="Skeleton3D"]
+bone_name = "Head"
+# Accessories (like hair Node3Ds) will be added as children here later.
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0) # Position at top/center of head

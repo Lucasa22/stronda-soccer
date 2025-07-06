@@ -41,13 +41,25 @@ var current_ai_state: String = "IDLE" # States: IDLE, DEFENDING_GOAL, APPROACHIN
 # Reference to the ball - needs to be found or passed in for AI
 var ball_node: RigidBody3D = null
 
-@onready var player_mesh = $PlayerMesh
+@export_group("Visual Variations")
+@export var player_height_scale: float = 1.0:
+	set(value):
+		player_height_scale = value
+		if is_inside_tree(): _apply_visual_variations()
+@export var player_width_scale: float = 1.0:
+	set(value):
+		player_width_scale = value
+		if is_inside_tree(): _apply_visual_variations()
+
+
+@onready var player_model: Node3D = $PlayerModel # Updated reference
 @onready var kick_area_3d = $KickArea3D
 @onready var dribble_area_3d: Area3D = $DribbleArea3D if has_node("DribbleArea3D") else null
 @onready var camera_3d = get_viewport().get_camera_3d() # Assuming camera is available for human player
 @onready var kick_sound: AudioStreamPlayer3D = $KickSound if has_node("KickSound") else null
+# @onready var player_number_label: Label3D = $PlayerModel/Skeleton3D/PlayerNumberLabel # Will be set up in PlayerModel3D.tscn
 
-var current_look_direction = Vector3.FORWARD # Used for mesh rotation
+var current_look_direction = Vector3.FORWARD # Used for model rotation
 var kick_charge_start_time: float = 0.0
 var is_charging_kick: bool = false
 var ball_being_dribbled: RigidBody3D = null
@@ -123,12 +135,13 @@ func _human_physics_process(delta):
 
 	move_and_slide()
 
-	# Smoothly rotate mesh to face movement/look direction
+	# Smoothly rotate model to face movement/look direction
 	if current_look_direction.length_squared() > 0.01: # Only rotate if there's a significant direction
-		var current_basis = player_mesh.global_transform.basis
-		var target_basis = Basis.looking_at(current_look_direction, Vector3.UP)
-		# Slerp for smooth rotation of the basis
-		player_mesh.global_transform.basis = current_basis.slerp(target_basis, turn_speed * delta)
+		if is_instance_valid(player_model):
+			var current_basis = player_model.global_transform.basis
+			var target_basis = Basis.looking_at(current_look_direction, Vector3.UP)
+			# Slerp for smooth rotation of the basis
+			player_model.global_transform.basis = current_basis.slerp(target_basis, turn_speed * delta)
 
 	# Attempt to dribble
 	_handle_dribbling(delta, move_direction_input)
@@ -270,7 +283,9 @@ func _handle_kick(charge_duration: float):
 
 			# Ensure the ball is somewhat in front of the player relative to player's look_direction (current_look_direction)
 			var ball_to_player_dir = (global_position - body.global_position).normalized()
-			var player_facing_dir = -player_mesh.global_transform.basis.z # Player's forward vector
+			var player_facing_dir = Vector3.FORWARD # Default, will be updated if model is valid
+			if is_instance_valid(player_model):
+				player_facing_dir = -player_model.global_transform.basis.z # Player's forward vector
 
 			# More lenient check: ensure the ball is generally in the forward arc of the player
 			# and also that the player is generally facing the ball.
@@ -295,19 +310,52 @@ func set_player_name(new_name):
 		label.text = new_name
 
 func set_player_color(color: Color):
-	if player_mesh and player_mesh.get_surface_material_count() > 0:
-		var mat = player_mesh.get_surface_material(0)
-		if mat is StandardMaterial3D:
-			mat.albedo_color = color
-		else: # If it's not a StandardMaterial3D, create one
-			var new_mat = StandardMaterial3D.new()
-			new_mat.albedo_color = color
-			player_mesh.set_surface_material(0, new_mat)
+	if not is_instance_valid(player_model): return
+
+	# Assuming the body mesh is correctly pathed within PlayerModel3D.tscn
+	var body_mesh_path = "Skeleton3D/BA_Hips/Mesh_Body" # Corrected path
+	var body_mesh_node = player_model.get_node_or_null(body_mesh_path)
+
+	if body_mesh_node and body_mesh_node is MeshInstance3D:
+		var mesh_instance = body_mesh_node as MeshInstance3D
+		var mat = mesh_instance.get_surface_override_material(0)
+		if mat is ShaderMaterial:
+			mat.set_shader_parameter("team_color", color)
+		else:
+			# If no ShaderMaterial exists, or it's a different material, create new and assign
+			var new_shader_mat = ShaderMaterial.new()
+			new_shader_mat.shader = load("res://shaders/team_color_shader.gdshader")
+			new_shader_mat.set_shader_parameter("team_color", color)
+			mesh_instance.set_surface_override_material(0, new_shader_mat)
+			# print("Applied new team_color_shader.gdshader")
+	else:
+		push_warning("Could not find Mesh_Body at " + body_mesh_path + " to apply color.")
+
+
+func set_player_number(number: String):
+	# This assumes player_number_label is correctly set up in PlayerModel3D.tscn
+	var player_number_label_path = "Skeleton3D/BA_Spine/PlayerNumberLabel" # Path within PlayerModel3D.tscn
+	var number_label_node = player_model.get_node_or_null(player_number_label_path)
+	if number_label_node and number_label_node is Label3D:
+		var label = number_label_node as Label3D
+		label.text = number
+	else:
+		push_warning("PlayerNumberLabel not found at path: " + player_number_label_path)
+	# print("Player number set to: ", number) # For debugging
+
+func _apply_visual_variations():
+	if not is_instance_valid(player_model):
+		return
+	player_model.scale = Vector3(player_width_scale, player_height_scale, player_width_scale)
+	# print(f"Applied visual variations: H={player_height_scale}, W={player_width_scale}")
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
 	# Default color if not set otherwise
-	set_player_color(Color.BLUE_VIOLET)
+	set_player_color(Color.BLUE_VIOLET) # Example team color
+	_apply_visual_variations() # Apply initial scale
+	set_player_number("10") # Example player number
+
 	# Add to player group for potential interactions
 	add_to_group("players")
 
@@ -336,10 +384,13 @@ func _ai_get_move_input(target_pos: Vector3) -> Vector2:
 	var direction_to_target = (target_pos - global_position).normalized()
 	# Convert world direction to local input vector (approximated)
 	# This is a simplified conversion. A more robust way might involve projecting to player's local XZ plane.
-	var forward_dir = -player_mesh.global_transform.basis.z # Player's current forward
-	var right_dir = player_mesh.global_transform.basis.x   # Player's current right
+	var model_forward_dir = Vector3.FORWARD
+	var model_right_dir = Vector3.RIGHT
+	if is_instance_valid(player_model):
+		model_forward_dir = -player_model.global_transform.basis.z # Player's current forward
+		model_right_dir = player_model.global_transform.basis.x   # Player's current right
 
-	var dot_fwd = direction_to_target.dot(forward_dir)
+	var dot_fwd = direction_to_target.dot(model_forward_dir)
 	var dot_right = direction_to_target.dot(right_dir)
 
 	var input_x = 0.0
@@ -439,9 +490,10 @@ func _ai_physics_process(delta):
 	move_and_slide()
 
 	if current_look_direction.length_squared() > 0.01:
-		var current_basis_ai = player_mesh.global_transform.basis
-		var target_basis_ai = Basis.looking_at(current_look_direction, Vector3.UP)
-		player_mesh.global_transform.basis = current_basis_ai.slerp(target_basis_ai, turn_speed * delta)
+		if is_instance_valid(player_model):
+			var current_basis_ai = player_model.global_transform.basis
+			var target_basis_ai = Basis.looking_at(current_look_direction, Vector3.UP)
+			player_model.global_transform.basis = current_basis_ai.slerp(target_basis_ai, turn_speed * delta)
 
 	# --- AI Kicking ---
 	if should_try_kick_ai and not is_charging_kick: # AI doesn't charge kicks for now
