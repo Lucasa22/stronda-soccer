@@ -39,6 +39,16 @@ comment = "Container for player instances"
 
 [node name="Player1" parent="Players" instance=ExtResource("1_player3d_scene")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 8) # Initial position for the player
+script = null # Ensure no conflicting script at instance level initially
+
+[node name="AIPlayer1" parent="Players" instance=ExtResource("1_player3d_scene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, -8) # Position on the other side
+script = null # Ensure no conflicting script at instance level initially
+# AI specific properties will be set via code or need to be directly set on its own script instance if we separate it.
+# For now, we'll assume player_3d_controller.gd handles the is_ai_controlled flag.
+# The player_3d_controller.gd on this instance needs:
+# is_ai_controlled = true
+# ai_goal_to_defend_pos = Vector3(0, 0, 30) # Defends the positive Z goal
 
 [node name="BallContainer" type="Node3D" parent="."]
 comment = "Container for the ball instance"

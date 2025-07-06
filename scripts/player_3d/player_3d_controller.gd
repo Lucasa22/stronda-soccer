@@ -27,10 +27,24 @@ var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 @export var dribble_ball_max_distance: float = 1.0 # Max distance ball can be to attempt dribble control
 @export var dribble_area_check_radius_factor: float = 0.8 # Factor of DribbleShape3D radius for stricter check
 
+@export_group("AI Control")
+@export var is_ai_controlled: bool = false
+@export var ai_goal_to_defend_pos: Vector3 = Vector3(0, 0, -30) # Example, should be set per instance
+@export var ai_defend_distance_offset: float = 5.0 # How far from goal line AI tries to stay
+@export var ai_approach_ball_radius: float = 8.0 # When ball is this close, AI approaches
+@export var ai_kick_ball_radius: float = 1.5 # When ball is this close, AI attempts a kick
+@export var ai_update_interval: float = 0.2 # How often AI updates its logic (seconds)
+
+var ai_time_since_last_update: float = 0.0
+var current_ai_state: String = "IDLE" # States: IDLE, DEFENDING_GOAL, APPROACHING_BALL
+
+# Reference to the ball - needs to be found or passed in for AI
+var ball_node: RigidBody3D = null
+
 @onready var player_mesh = $PlayerMesh
 @onready var kick_area_3d = $KickArea3D
 @onready var dribble_area_3d: Area3D = $DribbleArea3D if has_node("DribbleArea3D") else null
-@onready var camera_3d = get_viewport().get_camera_3d() # Assuming camera is available
+@onready var camera_3d = get_viewport().get_camera_3d() # Assuming camera is available for human player
 @onready var kick_sound: AudioStreamPlayer3D = $KickSound if has_node("KickSound") else null
 
 var current_look_direction = Vector3.FORWARD # Used for mesh rotation
@@ -41,6 +55,8 @@ var last_knock_on_time: float = -knock_on_cooldown # Initialize to allow immedia
 
 
 func _unhandled_input(event):
+	if is_ai_controlled: return # AI does not use direct unhandled_input for actions like this
+
 	if event.is_action_pressed("sprint_knock_on") and ball_being_dribbled and not is_charging_kick:
 		if (Time.get_ticks_msec() / 1000.0) - last_knock_on_time > knock_on_cooldown:
 			_perform_knock_on()
@@ -62,6 +78,12 @@ func _perform_knock_on():
 
 
 func _physics_process(delta):
+	if is_ai_controlled:
+		_ai_physics_process(delta)
+	else:
+		_human_physics_process(delta)
+
+func _human_physics_process(delta):
 	var effective_gravity = gravity * custom_gravity_scale
 	# Add the gravity.
 	if not is_on_floor():
@@ -73,7 +95,12 @@ func _physics_process(delta):
 
 	# Get the input direction and handle the movement/deceleration.
 	# Movement relative to camera view
-	var camera_basis = camera_3d.global_transform.basis
+	var current_camera = get_viewport().get_camera_3d() # Ensure we use the active camera
+	if not is_instance_valid(current_camera):
+		push_warning("Player controller needs a valid camera in the viewport for human control.")
+		return
+
+	var camera_basis = current_camera.global_transform.basis
 	var forward_cam = -camera_basis.z.normalized().slide(Vector3.UP) # Project on XZ plane
 	var right_cam = camera_basis.x.normalized().slide(Vector3.UP)   # Project on XZ plane
 
@@ -283,6 +310,158 @@ func _ready():
 	set_player_color(Color.BLUE_VIOLET)
 	# Add to player group for potential interactions
 	add_to_group("players")
+
+	if is_ai_controlled:
+		# AI needs a reference to the ball. This is a simple way, assumes one ball.
+		# In a real game, a game manager or event system might provide this.
+		var ball_nodes = get_tree().get_nodes_in_group("ball")
+		if ball_nodes.size() > 0:
+			ball_node = ball_nodes[0] as RigidBody3D # Get the first ball found
+		else:
+			print_warning(name + " (AI): No ball found in group 'ball'. AI will be idle.")
+			is_ai_controlled = false # Disable AI if no ball
+
+		# Ensure camera is not the main game camera if AI controlled, to avoid conflicts
+		# This assumes the AI player might have its own (disabled) camera or none.
+		# If AI is using the main camera for decision making, this needs adjustment.
+		var main_cam = get_viewport().get_camera_3d()
+		if main_cam == camera_3d and is_ai_controlled: # Check if this instance's camera_3d is the viewport's main camera
+			# This AI shouldn't rely on the main player's camera for its logic if it's not that player.
+			# For now, we'll assume AI logic is independent of a specific camera view for its decisions.
+			pass
+
+
+# --- AI Specific Logic ---
+func _ai_get_move_input(target_pos: Vector3) -> Vector2:
+	var direction_to_target = (target_pos - global_position).normalized()
+	# Convert world direction to local input vector (approximated)
+	# This is a simplified conversion. A more robust way might involve projecting to player's local XZ plane.
+	var forward_dir = -player_mesh.global_transform.basis.z # Player's current forward
+	var right_dir = player_mesh.global_transform.basis.x   # Player's current right
+
+	var dot_fwd = direction_to_target.dot(forward_dir)
+	var dot_right = direction_to_target.dot(right_dir)
+
+	var input_x = 0.0
+	var input_y = 0.0
+
+	if abs(dot_fwd) > 0.2: # Threshold to move
+		input_y = sign(dot_fwd)
+	if abs(dot_right) > 0.2: # Threshold to move
+		input_x = sign(dot_right)
+
+	return Vector2(input_x, input_y).normalized() # Return as Vector2 for existing movement logic
+
+
+func _ai_physics_process(delta):
+	if not ball_node or not is_instance_valid(ball_node):
+		# print_debug(name + " (AI): Ball node invalid, idling.")
+		velocity = velocity.move_toward(Vector3.ZERO, deceleration * delta) # Slow down
+		move_and_slide()
+		return
+
+	ai_time_since_last_update += delta
+	if ai_time_since_last_update < ai_update_interval:
+		# Apply existing velocity if any (from previous frame's decision)
+		if velocity.length_squared() > 0.01:
+			move_and_slide()
+		return # Update AI logic less frequently for performance
+
+	ai_time_since_last_update = 0.0 # Reset timer
+
+	var ball_pos = ball_node.global_position
+	var my_pos = global_position
+	var dist_to_ball_sq = my_pos.distance_squared_to(ball_pos)
+
+	# --- AI State Logic ---
+	if dist_to_ball_sq < ai_approach_ball_radius * ai_approach_ball_radius:
+		current_ai_state = "APPROACHING_BALL"
+	else:
+		current_ai_state = "DEFENDING_GOAL"
+	# --- End AI State Logic ---
+
+	var move_input_ai = Vector2.ZERO
+	var should_try_kick_ai = false
+
+	match current_ai_state:
+		"DEFENDING_GOAL":
+			var point_on_goal_line = ai_goal_to_defend_pos
+			var vector_from_goal_to_ball = (ball_pos - point_on_goal_line).normalized()
+			var defend_target_pos = point_on_goal_line + vector_from_goal_to_ball * ai_defend_distance_offset
+			defend_target_pos.y = global_position.y # Keep AI at its current height
+			move_input_ai = _ai_get_move_input(defend_target_pos)
+			# print_debug(name + " (AI): Defending. Target: " + str(defend_target_pos))
+
+		"APPROACHING_BALL":
+			var approach_target_pos = ball_pos
+			approach_target_pos.y = global_position.y # Keep AI at its current height
+			move_input_ai = _ai_get_move_input(approach_target_pos)
+			# print_debug(name + " (AI): Approaching ball. Target: " + str(approach_target_pos))
+			if dist_to_ball_sq < ai_kick_ball_radius * ai_kick_ball_radius:
+				should_try_kick_ai = true
+
+	# --- Apply AI Decisions to Movement ---
+	# (This part reuses the human player's movement logic, but with AI-generated input)
+	var target_vel_ai = Vector3.ZERO
+	if move_input_ai.length_squared() > 0.01 :
+		# AI movement is world-based, not camera-relative
+		var world_move_dir = Vector3(move_input_ai.x, 0, move_input_ai.y).normalized()
+		# To make AI use its own orientation for "forward/right" in _ai_get_move_input,
+		# we need to ensure current_look_direction is updated based on AI's intended movement.
+		# For now, let's make it simpler: AI moves in world directions.
+		# The _ai_get_move_input gives a local-space-like input, let's convert that.
+		# This needs refinement if AI is to behave like player with camera-relative input.
+		# Simplification: AI directly controls world velocity direction.
+
+		# If _ai_get_move_input returns (0,1) it means "move towards target".
+		# We need to convert that target direction into velocity.
+		var dir_to_move = Vector3.ZERO
+		if current_ai_state == "DEFENDING_GOAL":
+			var point_on_goal_line_def = ai_goal_to_defend_pos
+			var vector_from_goal_to_ball_def = (ball_pos - point_on_goal_line_def).normalized()
+			var defend_target_pos_def = point_on_goal_line_def + vector_from_goal_to_ball_def * ai_defend_distance_offset
+			dir_to_move = (defend_target_pos_def - global_position).normalized()
+		elif current_ai_state == "APPROACHING_BALL":
+			dir_to_move = (ball_pos - global_position).normalized()
+
+		if dir_to_move.length_squared() > 0.01:
+			target_vel_ai.x = dir_to_move.x * SPEED
+			target_vel_ai.z = dir_to_move.z * SPEED
+			current_look_direction = dir_to_move # AI looks where it's going
+
+	if target_vel_ai.length_squared() > 0:
+		velocity.x = move_toward(velocity.x, target_vel_ai.x, acceleration * delta)
+		velocity.z = move_toward(velocity.z, target_vel_ai.z, acceleration * delta)
+	else:
+		velocity.x = move_toward(velocity.x, 0, deceleration * delta)
+		velocity.z = move_toward(velocity.z, 0, deceleration * delta)
+
+	move_and_slide()
+
+	if current_look_direction.length_squared() > 0.01:
+		var current_basis_ai = player_mesh.global_transform.basis
+		var target_basis_ai = Basis.looking_at(current_look_direction, Vector3.UP)
+		player_mesh.global_transform.basis = current_basis_ai.slerp(target_basis_ai, turn_speed * delta)
+
+	# --- AI Kicking ---
+	if should_try_kick_ai and not is_charging_kick: # AI doesn't charge kicks for now
+		# Simple kick towards opponent's goal (assuming it's opposite of ai_goal_to_defend_pos)
+		var opponent_goal_pos = -ai_goal_to_defend_pos
+		opponent_goal_pos.y = ball_pos.y # Kick at ball height
+
+		var bodies_in_kick_area = kick_area_3d.get_overlapping_bodies()
+		for body_in_kick in bodies_in_kick_area:
+			if body_in_kick == ball_node: # If the ball is in our kick area
+				var kick_direction_ai = (opponent_goal_pos - ball_pos).normalized()
+				# Apply a slight upward angle to the kick for AI
+				kick_direction_ai.y = 0.15
+				kick_direction_ai = kick_direction_ai.normalized()
+
+				ball_node.apply_central_impulse(kick_direction_ai * min_kick_force) # AI uses min_kick_force for now
+				# print_debug(name + " (AI): Kicked ball towards " + str(opponent_goal_pos))
+				if kick_sound and kick_sound.stream: kick_sound.play()
+				break # Kicked once
+	# --- End AI Kicking ---
 
 
 # Input mapping (ensure these are set up in Project > Project Settings > Input Map)

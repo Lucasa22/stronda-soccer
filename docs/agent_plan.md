@@ -123,9 +123,20 @@ Melhorar os seguintes aspectos do jogo:
     - :heavy_check_mark: **Ajustes na Física da Bola para Dribles:** `ball_3d_controller.gd` modificado para que a bola possa ter seu damping alterado dinamicamente (via `set_is_being_dribbled`) para melhor responsividade durante o drible. Jogador agora informa a bola sobre o estado de drible.
     - :wavy_dash: **Feedback Visual para Dribles:** Adiado.
     - :red_circle: **Testes Iterativos no `TrainingMode3D.tscn`:** Testes detalhados adiados pelo usuário.
-- **Arquivos Criados/Modificados (Dribles e Movimentação Avançada da Bola):**
-    - `scripts/player_3d/player_3d_controller.gd` (adição de lógica de drible, knock-on, comunicação com a bola)
-    - `scenes/player/Player3D.tscn` (adicionada `DribbleArea3D`)
+- **Status da Fase Atual (IA Básica):**
+    - :heavy_check_mark: **Design da IA - Comportamento Básico (Defensor Simples):** Concluído.
+    - :heavy_check_mark: **Preparação do Jogador IA e Implementação do Script:** `player_3d_controller.gd` modificado para incluir `is_ai_controlled` e lógica `_ai_physics_process` básica para os estados `DEFENDING_GOAL` e `APPROACHING_BALL`, incluindo chute simples.
+    - :heavy_check_mark: **Adicionar Instância do Jogador IA na Cena de Treino:** `AIPlayer1` adicionado a `TrainingMode3D.tscn`. Instruções para configuração manual fornecidas.
+    - :red_circle: **Testes Iniciais da IA:** Adiado pelo usuário.
+    - :red_circle: **Refinamentos e Iteração (Simples):** Adiado, pendente de testes.
+- **Arquivos Criados/Modificados (IA Básica):**
+    - `scripts/player_3d/player_3d_controller.gd` (adição de lógica de IA, estados, e parâmetros de IA)
+    - `scenes/game/TrainingMode3D.tscn` (adicionada instância de IA `AIPlayer1`)
+    - `TESTS_MANUAL.md` (criado e populado com casos de teste para IA e outras mecânicas)
+- **Próximos Passos da Migração 3D:** Testes extensivos pelo usuário são altamente recomendados. Após isso, novas funcionalidades ou mais refinamentos.
+    - `scenes/game/Game3D.tscn` (atualizado com script de câmera)
+    - `scenes/game/TrainingMode3D.tscn` (atualizado com script de câmera, lógica de treino, gols placeholder)
+    - `scripts/player_3d/player_3d_controller.gd` (mecânica de chute aprimorada, som)
     - `scripts/ball_3d/ball_3d_controller.gd` (adição de `is_being_dribbled` e `set_is_being_dribbled` para alterar física dinamicamente)
     - `project.godot` (adicionada action `sprint_knock_on`)
 - **Próximos Passos da Migração 3D:** Testes extensivos pelo usuário são altamente recomendados. Após isso, novas funcionalidades ou mais refinamentos.
