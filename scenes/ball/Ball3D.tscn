@@ -13,12 +13,16 @@ radius = 0.22
 collision_layer = 4 # Physics layer 4 for Ball
 collision_mask = 7  # Collide with World (1), Player (2), and other Balls (4)
 script = ExtResource("1_lmno")
-mass = 0.45 # Standard soccer ball mass ~0.45kg
-# physics_material_override: Set in script or here if preferred
-# linear_damp and angular_damp will use project defaults or can be overridden here/in script
+mass = 0.43 # Slightly lighter than standard, common in some arcade games for more "floaty" feel
+physics_material_override = PhysicsMaterial.new()
+physics_material_override.friction = 0.35
+physics_material_override.bounce = 0.65
+linear_damp = 0.05 # Lowered for less air resistance initially
+angular_damp = 0.1 # Slightly lower for more spin retention
 continuous_cd = true # Important for fast moving small objects
 contact_monitor = true # To detect collisions if needed by script
 max_contacts_reported = 8 # Number of contacts to report
+max_linear_velocity = 60.0 # Max speed for the ball
 
 [node name="BallMesh" type="MeshInstance3D" parent="."]
 mesh = SubResource("SphereMesh_ball3d")

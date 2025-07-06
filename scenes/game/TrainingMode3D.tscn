@@ -55,9 +55,11 @@ near = 0.1
 far = 1000.0
 script = ExtResource("3_camera_script")
 target_path = NodePath("../Players/Player1")
-offset = Vector3(0, 12, 8) # Adjusted offset for a slightly better view
-look_at_offset = Vector3(0, 1, 0)
+offset = Vector3(0, 12, 9) # Adjusted offset for a slightly better view
+look_at_offset = Vector3(0, 1.2, 0)
 smoothness = 7.0
+collision_layer_mask = 1
+collision_push_margin = 0.3
 comment = "Main game camera. Position and rotation might need adjustment based on final field size and player height."
 
 [node name="UI" type="CanvasLayer" parent="."]

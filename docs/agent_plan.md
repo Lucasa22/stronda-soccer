@@ -112,12 +112,17 @@ Melhorar os seguintes aspectos do jogo:
 - **Status da Fase Atual (Refinamentos):**
     - :heavy_check_mark: **Refinamento da Câmera 3D:** Script `camera_controller.gd` criado e aplicado, com seguimento suave e offsets configuráveis.
     - :heavy_check_mark: **Desenvolvimento do Modo de Treinamento (Fase 2 - Funcionalidades):** Script `training_mode_logic.gd` criado e integrado, permitindo reset da bola (R) e jogador (Shift+R). Gols placeholders adicionados. Inputs configurados.
-    - :heavy_check_mark: **Melhorias na Mecânica de Chute:** Implementada carga de chute (segurar 'F'), variação de força, e influência na elevação com `aim_high` (Shift+F). Movimento do jogador relativo à câmera.
-    - :heavy_check_mark: **Feedback Visual e Sonoro Básico (Lógica):** Nós `AudioStreamPlayer3D` adicionados ao jogador (chute) e bola (colisão). Scripts atualizados para tocar sons (arquivos de áudio a serem adicionados pelo usuário).
-    - :red_circle: **Testes e Ajustes:** Adiado pelo usuário. Próxima etapa crucial.
-- **Arquivos Criados/Modificados (Refinamentos):**
-    - `scripts/game_3d/camera_controller.gd`
-    - `scripts/game_3d/training_mode_logic.gd`
+    - :heavy_check_mark: **Melhorias na Mecânica de Chute:** Implementada carga de chute (segurar 'F'), variação de força, e influência na elevação com `aim_high` (Shift+F). Movimento do jogador relativo à câmera. Valores de força e tempo de carga ajustados. Lógica de detecção de chute refinada.
+    - :heavy_check_mark: **Feedback Visual e Sonoro Básico (Lógica):** Nós `AudioStreamPlayer3D` adicionados ao jogador (chute) e bola (colisão). Scripts atualizados para tocar sons (arquivos de áudio a serem adicionados pelo usuário). Som de colisão da bola agora varia com a intensidade.
+    - :white_check_mark: **Testes e Ajustes:** Usuário indicou satisfação com os ajustes proativos e adiou testes detalhados. Consideramos esta rodada de ajustes concluída com base no feedback.
+- **Arquivos Criados/Modificados (Refinamentos - Rodada 2):**
+    - `scripts/ball_3d/ball_3d_controller.gd` (ajustes de física, resistência do ar, som de colisão dinâmico)
+    - `scenes/ball/Ball3D.tscn` (ajustes nos parâmetros de física no Inspector)
+    - `scripts/player_3d/player_3d_controller.gd` (ajustes na movimentação, gravidade customizada, aceleração/desaceleração, rotação suave, parâmetros de chute, condição de chute)
+    - `scripts/game_3d/camera_controller.gd` (lógica de anti-oclusão com RayCast, ajustes de offset)
+    - `scenes/game/Game3D.tscn` (atualizados parâmetros da câmera)
+    - `scenes/game/TrainingMode3D.tscn` (atualizados parâmetros da câmera)
+- **Próximos Passos da Migração 3D:** Testes extensivos pelo usuário são altamente recomendados. Após isso, novas funcionalidades ou mais refinamentos.
     - `scenes/game/Game3D.tscn` (atualizado com script de câmera)
     - `scenes/game/TrainingMode3D.tscn` (atualizado com script de câmera, lógica de treino, gols placeholder)
     - `scripts/player_3d/player_3d_controller.gd` (mecânica de chute aprimorada, som)
