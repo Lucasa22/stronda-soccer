@@ -77,7 +77,7 @@
 
 ## 🔧 Estrutura de Arquivos
 
-```
+```text
 scenes/
   game/
     Game3D.tscn          # Cena principal 3D
@@ -88,11 +88,11 @@ scenes/
 
 scripts/
   game/
-    game-script.gd       # Script principal (atualizado para 3D)
+    game_manager.gd      # Script principal (gerencia o estado do jogo)
   player/
-    player-3d-controller.gd  # Controlador do jogador 3D
+    player_3d.gd         # Lógica e controle do jogador 3D
   physics/
-    ball-3d-controller.gd    # Controlador da bola 3D
+    ball_3d.gd           # Lógica e física da bola 3D
   globals/
     game-constants.gd    # Constantes atualizadas para 3D
 ```

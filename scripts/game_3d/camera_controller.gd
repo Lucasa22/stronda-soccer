@@ -15,7 +15,7 @@ func _ready():
 	if target_path:
 		target_node = get_node_or_null(target_path)
 	if not target_node:
-		print_warning("Camera target not found or not set: " + str(target_path))
+		push_warning("Camera target not found or not set: " + str(target_path))
 		set_physics_process(false) # Disable processing if no target
 		return
 
@@ -62,7 +62,7 @@ func set_target(new_target_node: Node3D):
 		# global_transform.origin = target_node.global_transform.origin + offset
 		# look_at(target_node.global_transform.origin + look_at_offset, Vector3.UP)
 	else:
-		print_warning("Attempted to set invalid camera target.")
+		push_warning("Attempted to set invalid camera target.")
 
 func set_offset(new_offset: Vector3):
 	offset = new_offset

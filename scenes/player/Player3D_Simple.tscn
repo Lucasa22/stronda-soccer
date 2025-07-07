@@ -1,0 +1,46 @@
+[gd_scene load_steps=6 format=3 uid="uid://c5y8qm7n2k1p5"]
+
+[ext_resource type="Script" uid="uid://bltinay4rvgec" path="res://scripts/player_3d/player_3d_controller_simple.gd" id="1_script"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
+radius = 0.4
+height = 1.8
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_Body"]
+radius = 0.35
+height = 1.5
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_player"]
+albedo_color = Color(0, 0, 1, 1)
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_kick"]
+radius = 0.8
+
+[node name="Player3D" type="CharacterBody3D"]
+collision_mask = 5
+script = ExtResource("1_script")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_player")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+mesh = SubResource("CapsuleMesh_Body")
+surface_material_override/0 = SubResource("StandardMaterial3D_player")
+
+[node name="PlayerNameLabel3D" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 0)
+pixel_size = 0.001
+billboard = 1
+no_depth_test = true
+fixed_size = true
+text = "Player"
+
+[node name="KickArea3D" type="Area3D" parent="."]
+collision_layer = 0
+collision_mask = 4
+
+[node name="KickCollisionShape3D" type="CollisionShape3D" parent="KickArea3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, -0.6)
+shape = SubResource("SphereShape3D_kick")

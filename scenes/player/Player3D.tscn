@@ -263,20 +263,5 @@ pitch_scale = 1.0
 autoplay = false
 max_distance = 50.0
 doppler_tracking = 0
-# stream will be assigned in editor or later
-font_size = 32 # This property seems to be a copy-paste error for AudioStreamPlayer3D
-outline_modulate = Color(0, 0, 0, 1) # This property seems to be a copy-paste error
-billboard = 1 # This property seems to be a copy-paste error
-no_depth_test = true # This property seems to be a copy-paste error
-fixed_size = true # This property seems to be a copy-paste error
-pixel_size = 0.01 # This property seems to be a copy-paste error
 
-# Note: The Skeleton3D hierarchy itself (bones) is not defined in the .tscn text format directly.
-# This needs to be set up in the Godot editor. I've added placeholders for MeshInstance3Ds
-# that would conceptually be part of the player model.
-# The actual bone structure and parenting of meshes to bones will be done
-# when creating the PlayerModel3D.tscn scene.
-# For now, the meshes are children of Skeleton3D for organization.
-# The `PlayerModel` node is positioned at `0, 0.9, 0` to align with the CharacterBody3D's base.
-# The meshes are then positioned relative to this `PlayerModel`'s origin.
-# Removed the `font_size`, `outline_modulate`, `billboard`, `no_depth_test`, `fixed_size`, `pixel_size` from KickSound as they are not valid properties.
+

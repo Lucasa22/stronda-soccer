@@ -6,28 +6,11 @@ extends RigidBody3D
 func _ready():
 	# Add to "ball" group for easier identification (e.g., by player's kick area)
 	add_to_group("ball")
-
-	# Physics material properties are now primarily set in the Inspector for Ball3D.tscn.
-	# This script won't override them unless specific dynamic adjustments are needed.
-	# If you need to access them:
-	# var current_material = physics_material_override
-	# if current_material:
-	#	 current_material.friction = new_friction_value
-	# else:
-	#	 var new_material = PhysicsMaterial.new()
-	#	 new_material.friction = 0.4 # Default if somehow not set
-	#	 new_material.bounce = 0.7  # Default if somehow not set
-	#	 physics_material_override = new_material
-
-	# print("Ball ready. Mass: ", mass, " Friction: ", physics_material_override.friction if physics_material_override else "N/A", " Bounce: ", physics_material_override.bounce if physics_material_override else "N/A")
-
-# Variable to be set by player when dribbling, to temporarily modify physics
-var is_being_dribbled: bool = false
-var _default_linear_damp: float = -1.0 # Store project default or inspector value
-var _default_angular_damp: float = -1.0
-
-func _ready():
-	add_to_group("ball")
+	
+	# Set collision layers - Ball is on layer 4 (collision_mask = 4 in goals)
+	collision_layer = 4  # Ball layer
+	collision_mask = 1 | 4 | 8  # Collide with players (1), walls (4), and goals (8)
+	
 	# Store default damp values if not already set by inspector override
 	if linear_damp < 0:
 		_default_linear_damp = ProjectSettings.get_setting("physics/3d/default_linear_damp", 0.1)
@@ -38,6 +21,9 @@ func _ready():
 		_default_angular_damp = ProjectSettings.get_setting("physics/3d/default_angular_damp", 0.1)
 	else:
 		_default_angular_damp = angular_damp
+
+	# Physics material properties are now primarily set in the Inspector for Ball3D.tscn.
+	# This script won't override them unless specific dynamic adjustments are needed.
 
 	if _default_linear_damp < 0: _default_linear_damp = 0.1
 	if _default_angular_damp < 0: _default_angular_damp = 0.1

@@ -708,7 +708,7 @@ func _perform_strong_kick(charge_duration: float): # Was _handle_kick
 				ball_rb.apply_central_impulse(final_kick_dir * current_kick_force)
 				if kick_sound and kick_sound.stream: kick_sound.play()
 			else:
-				print(f"Ball not in ideal kicking position for strong kick. Player_dot: {dot_player_to_ball}")
+				print("Ball not in ideal kicking position for strong kick. Player_dot: " + str(dot_player_to_ball))
 			return # Kick one ball
 
 
@@ -916,6 +916,21 @@ func _handle_kick(charge_duration: float):
 				print(f"Ball not in ideal kicking position. Player_dot: {dot_player_to_ball}, KickArea_dot: {dot_kick_area_to_ball}")
 			return # Kick one ball at a time
 
+# Helper functions for configuration
+func set_ai_controlled(value: bool):
+	is_ai_controlled = value
+	if is_ai_controlled:
+		# Setup AI automatically
+		var ball_nodes = get_tree().get_nodes_in_group("ball")
+		if ball_nodes.size() > 0:
+			ball_node = ball_nodes[0] as RigidBody3D
+		ai_goal_to_defend_pos = Vector3(0, 0, -30)  # Defend goal1 position
+
+func set_player_color(color: Color):
+	# This function likely already exists but making sure it's accessible
+	player_team_color = color
+
+
 func set_player_name(new_name):
 	var label = $PlayerNameLabel3D
 	if label:
@@ -993,6 +1008,10 @@ func _apply_visual_variations():
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
+	# Set collision layers
+	collision_layer = 1  # Player layer
+	collision_mask = 1 | 4 | 8  # Collide with other players (1), ball (4), walls (8)
+	
 	# It's good practice to wait for children to be ready if relying on them,
 	# but @onready should handle player_model_instance and animation_tree.
 	# If issues arise, could use `await owner.ready` or `call_deferred` for setups.
