@@ -10,8 +10,8 @@ move "game-constants.gd" "scripts\globals\"
 REM Scripts de jogador
 move "player-script.gd" "scripts\player\"
 move "multiplayer-player.gd" "scripts\player\"
-move "enhanced-player-controller (1).txt" "scripts\player\enhanced-player-controller.gd"
-move "enhanced-player-controller (2).txt" "scripts\player\enhanced-player-controller-v2.gd"
+
+
 
 REM Scripts de jogo
 move "game-script.gd" "scripts\game\"
@@ -29,7 +29,7 @@ move "arena-multiplayer (1).txt" "scripts\arena\arena-multiplayer.gd"
 
 REM Scripts de física
 move "advanced-physics-controller.gd" "scripts\physics\"
-move "advanced-physics-controller (1).txt" "scripts\physics\advanced-physics-controller-backup.gd"
+
 move "ball-script.gd" "scripts\physics\"
 
 REM Scripts de rede
@@ -46,8 +46,8 @@ move "3d-migration-guide.md" "docs\"
 
 REM Mover ferramentas
 echo Movendo ferramentas...
-move "convert_files.bat" "tools\"
-move "remove_txt_files.bat" "tools\"
+
+
 
 REM Mover ícone para assets
 echo Movendo assets...

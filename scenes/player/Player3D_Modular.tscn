@@ -1,0 +1,180 @@
+[gd_scene load_steps=16 format=3 uid="uid://bdytqhw42oycw"]
+
+[ext_resource type="Script" uid="uid://dydbkmaxput6i" path="res://scripts/player_3d/player_3d_controller_modular.gd" id="1_script"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
+radius = 0.35
+height = 1.75
+
+[sub_resource type="StandardMaterial3D" id="Material_Shorts"]
+albedo_color = Color(0.1, 0.1, 0.1, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_Pelvis"]
+size = Vector3(0.35, 0.25, 0.2)
+
+[sub_resource type="StandardMaterial3D" id="Material_Shirt"]
+albedo_color = Color(0.2, 0.4, 0.8, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_Chest"]
+size = Vector3(0.4, 0.5, 0.2)
+
+[sub_resource type="StandardMaterial3D" id="Material_Skin"]
+albedo_color = Color(0.9, 0.7, 0.6, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_Head"]
+size = Vector3(0.25, 0.3, 0.25)
+
+[sub_resource type="BoxMesh" id="BoxMesh_UpperArm"]
+size = Vector3(0.12, 0.35, 0.12)
+
+[sub_resource type="BoxMesh" id="BoxMesh_LowerArm"]
+size = Vector3(0.1, 0.3, 0.1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_UpperLeg"]
+size = Vector3(0.15, 0.4, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_LowerLeg"]
+size = Vector3(0.12, 0.35, 0.12)
+
+[sub_resource type="StandardMaterial3D" id="Material_Shoes"]
+albedo_color = Color(0.05, 0.05, 0.05, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_Foot"]
+size = Vector3(0.1, 0.08, 0.25)
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_kick"]
+radius = 0.4
+
+[node name="Player3D" type="CharacterBody3D"]
+collision_mask = 5
+script = ExtResource("1_script")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.875, 0)
+shape = SubResource("CapsuleShape3D_player")
+
+[node name="PlayerModel" type="Node3D" parent="."]
+
+[node name="Pelvis" type="Node3D" parent="PlayerModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+
+[node name="PelvisMesh" type="MeshInstance3D" parent="PlayerModel/Pelvis"]
+material_override = SubResource("Material_Shorts")
+mesh = SubResource("BoxMesh_Pelvis")
+
+[node name="Spine" type="Node3D" parent="PlayerModel/Pelvis"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
+
+[node name="Chest" type="Node3D" parent="PlayerModel/Pelvis/Spine"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.35, 0)
+
+[node name="ChestMesh" type="MeshInstance3D" parent="PlayerModel/Pelvis/Spine/Chest"]
+material_override = SubResource("Material_Shirt")
+mesh = SubResource("BoxMesh_Chest")
+
+[node name="Head" type="Node3D" parent="PlayerModel/Pelvis/Spine/Chest"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+
+[node name="HeadMesh" type="MeshInstance3D" parent="PlayerModel/Pelvis/Spine/Chest/Head"]
+material_override = SubResource("Material_Skin")
+mesh = SubResource("BoxMesh_Head")
+
+[node name="LeftShoulder" type="Node3D" parent="PlayerModel/Pelvis/Spine/Chest"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.25, 0.15, 0)
+
+[node name="LeftUpperArm" type="Node3D" parent="PlayerModel/Pelvis/Spine/Chest/LeftShoulder"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.1, -0.175, 0)
+
+[node name="LeftUpperArmMesh" type="MeshInstance3D" parent="PlayerModel/Pelvis/Spine/Chest/LeftShoulder/LeftUpperArm"]
+material_override = SubResource("Material_Skin")
+mesh = SubResource("BoxMesh_UpperArm")
+
+[node name="LeftLowerArm" type="Node3D" parent="PlayerModel/Pelvis/Spine/Chest/LeftShoulder/LeftUpperArm"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.325, 0)
+
+[node name="LeftLowerArmMesh" type="MeshInstance3D" parent="PlayerModel/Pelvis/Spine/Chest/LeftShoulder/LeftUpperArm/LeftLowerArm"]
+material_override = SubResource("Material_Skin")
+mesh = SubResource("BoxMesh_LowerArm")
+
+[node name="RightShoulder" type="Node3D" parent="PlayerModel/Pelvis/Spine/Chest"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.25, 0.15, 0)
+
+[node name="RightUpperArm" type="Node3D" parent="PlayerModel/Pelvis/Spine/Chest/RightShoulder"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.1, -0.175, 0)
+
+[node name="RightUpperArmMesh" type="MeshInstance3D" parent="PlayerModel/Pelvis/Spine/Chest/RightShoulder/RightUpperArm"]
+material_override = SubResource("Material_Skin")
+mesh = SubResource("BoxMesh_UpperArm")
+
+[node name="RightLowerArm" type="Node3D" parent="PlayerModel/Pelvis/Spine/Chest/RightShoulder/RightUpperArm"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.325, 0)
+
+[node name="RightLowerArmMesh" type="MeshInstance3D" parent="PlayerModel/Pelvis/Spine/Chest/RightShoulder/RightUpperArm/RightLowerArm"]
+material_override = SubResource("Material_Skin")
+mesh = SubResource("BoxMesh_LowerArm")
+
+[node name="LeftHip" type="Node3D" parent="PlayerModel/Pelvis"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.12, -0.125, 0)
+
+[node name="LeftUpperLeg" type="Node3D" parent="PlayerModel/Pelvis/LeftHip"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+
+[node name="LeftUpperLegMesh" type="MeshInstance3D" parent="PlayerModel/Pelvis/LeftHip/LeftUpperLeg"]
+material_override = SubResource("Material_Shorts")
+mesh = SubResource("BoxMesh_UpperLeg")
+
+[node name="LeftLowerLeg" type="Node3D" parent="PlayerModel/Pelvis/LeftHip/LeftUpperLeg"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.375, 0)
+
+[node name="LeftLowerLegMesh" type="MeshInstance3D" parent="PlayerModel/Pelvis/LeftHip/LeftUpperLeg/LeftLowerLeg"]
+material_override = SubResource("Material_Skin")
+mesh = SubResource("BoxMesh_LowerLeg")
+
+[node name="LeftFoot" type="Node3D" parent="PlayerModel/Pelvis/LeftHip/LeftUpperLeg/LeftLowerLeg"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.215, 0.075)
+
+[node name="LeftFootMesh" type="MeshInstance3D" parent="PlayerModel/Pelvis/LeftHip/LeftUpperLeg/LeftLowerLeg/LeftFoot"]
+material_override = SubResource("Material_Shoes")
+mesh = SubResource("BoxMesh_Foot")
+
+[node name="RightHip" type="Node3D" parent="PlayerModel/Pelvis"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.12, -0.125, 0)
+
+[node name="RightUpperLeg" type="Node3D" parent="PlayerModel/Pelvis/RightHip"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+
+[node name="RightUpperLegMesh" type="MeshInstance3D" parent="PlayerModel/Pelvis/RightHip/RightUpperLeg"]
+material_override = SubResource("Material_Shorts")
+mesh = SubResource("BoxMesh_UpperLeg")
+
+[node name="RightLowerLeg" type="Node3D" parent="PlayerModel/Pelvis/RightHip/RightUpperLeg"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.375, 0)
+
+[node name="RightLowerLegMesh" type="MeshInstance3D" parent="PlayerModel/Pelvis/RightHip/RightUpperLeg/RightLowerLeg"]
+material_override = SubResource("Material_Skin")
+mesh = SubResource("BoxMesh_LowerLeg")
+
+[node name="RightFoot" type="Node3D" parent="PlayerModel/Pelvis/RightHip/RightUpperLeg/RightLowerLeg"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.215, 0.075)
+
+[node name="RightFootMesh" type="MeshInstance3D" parent="PlayerModel/Pelvis/RightHip/RightUpperLeg/RightLowerLeg/RightFoot"]
+material_override = SubResource("Material_Shoes")
+mesh = SubResource("BoxMesh_Foot")
+
+[node name="KickArea3D" type="Area3D" parent="PlayerModel/Pelvis/RightHip/RightUpperLeg/RightLowerLeg/RightFoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.15)
+collision_layer = 0
+collision_mask = 4
+monitorable = false
+
+[node name="KickShape3D" type="CollisionShape3D" parent="PlayerModel/Pelvis/RightHip/RightUpperLeg/RightLowerLeg/RightFoot/KickArea3D"]
+shape = SubResource("SphereShape3D_kick")
+
+[node name="PlayerNameLabel3D" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.1, 0)
+pixel_size = 0.002
+billboard = 1
+no_depth_test = true
+fixed_size = true
+text = "Player"
+font_size = 16
