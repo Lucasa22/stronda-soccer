@@ -1,12 +1,10 @@
-[gd_scene load_steps=8 format=3 uid="uid://4wbisvw7vcxs"]
+[gd_scene load_steps=13 format=3 uid="uid://4wbisvw7vcxs"]
 
-[ext_resource type="PackedScene" uid="uid://c5y8qm7n2k1p5" path="res://scenes/player/Player3D_Simple.tscn" id="1_player3d_scene"]
+[ext_resource type="PackedScene" uid="uid://bdytqhw42oycw" path="res://scenes/player/Player3D_Modular.tscn" id="1_player3d_scene"]
 [ext_resource type="PackedScene" uid="uid://cak2m4n8p6q7r" path="res://scenes/ball/Ball3D_Simple.tscn" id="2_ball3d_scene"]
-[ext_resource type="Script" path="res://scripts/game_3d/camera_controller_simple.gd" id="3_camera_script"]
-[ext_resource type="Script" path="res://scripts/game_3d/training_mode_logic_simple.gd" id="4_training_logic"]
-
-[sub_resource type="PlaneMesh" id="PlaneMesh_pqoxt"]
-size = Vector2(100, 60)
+[ext_resource type="Script" uid="uid://ctkst0psxdovo" path="res://scripts/game_3d/camera_controller_simple.gd" id="3_camera_script"]
+[ext_resource type="Texture2D" uid="uid://b7d4h6rxgice0" path="res://assets/sprites/field.png" id="4_field_texture"]
+[ext_resource type="Texture2D" uid="uid://fps70tix2uej" path="res://assets/sprites/field_lines.png" id="5_field_lines_texture"]
 
 [sub_resource type="Environment" id="Environment_3dbqo"]
 ambient_light_source = 3
@@ -15,13 +13,28 @@ ambient_light_energy = 0.5
 tonemap_mode = 2
 glow_enabled = true
 
+[sub_resource type="PlaneMesh" id="PlaneMesh_pqoxt"]
+size = Vector2(50, 30)
+
+[sub_resource type="StandardMaterial3D" id="FieldMaterial"]
+albedo_color = Color(0.1, 0.5, 0.1, 1)
+albedo_texture = ExtResource("4_field_texture")
+
+[sub_resource type="StandardMaterial3D" id="FieldLinesMaterial"]
+transparency = 1
+albedo_color = Color(1, 1, 1, 0.8)
+albedo_texture = ExtResource("5_field_lines_texture")
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_field"]
+size = Vector3(50, 0.1, 30)
+
 [sub_resource type="BoxShape3D" id="BoxShape3D_goal"]
 size = Vector3(2, 2.5, 8)
 
-[node name="TrainingMode" type="Node3D" node_paths=PackedStringArray("player_node_path", "ball_node_path")]
-script = ExtResource("4_training_logic")
-player_node_path = NodePath("Players/Player1")
-ball_node_path = NodePath("BallContainer/Ball")
+[sub_resource type="StandardMaterial3D" id="GoalMaterial"]
+albedo_color = Color(0.8, 0.8, 0.8, 1)
+
+[node name="TrainingMode" type="Node3D"]
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 15, 0)
@@ -31,100 +44,77 @@ directional_shadow_max_distance = 200.0
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_3dbqo")
 
-[node name="Field" type="MeshInstance3D" parent="."]
-mesh = SubResource("PlaneMesh_pqoxt")
-surface_material_override/0 = StandardMaterial3D.new()
-surface_material_override/0.albedo_color = Color(0.1, 0.5, 0.1, 1)
+[node name="Field" type="StaticBody3D" parent="."]
+collision_layer = 16
+collision_mask = 0
 
+[node name="FieldMesh" type="MeshInstance3D" parent="Field"]
+mesh = SubResource("PlaneMesh_pqoxt")
+surface_material_override/0 = SubResource("FieldMaterial")
+
+[node name="FieldLinesMesh" type="MeshInstance3D" parent="Field"]
+mesh = SubResource("PlaneMesh_pqoxt")
+surface_material_override/0 = SubResource("FieldLinesMaterial")
+
+[node name="FieldCollision" type="CollisionShape3D" parent="Field"]
+shape = SubResource("BoxShape3D_field")
 
 [node name="Players" type="Node3D" parent="."]
-comment = "Container for player instances"
 
 [node name="Player1" parent="Players" instance=ExtResource("1_player3d_scene")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 8) # Initial position for the player
-script = null # Ensure no conflicting script at instance level initially
-
-[node name="AIPlayer1" parent="Players" instance=ExtResource("1_player3d_scene")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, -8) # Position on the other side
-script = null # Ensure no conflicting script at instance level initially
-# AI specific properties will be set via code or need to be directly set on its own script instance if we separate it.
-# For now, we'll assume player_3d_controller.gd handles the is_ai_controlled flag.
-# The player_3d_controller.gd on this instance needs:
-# is_ai_controlled = true
-# ai_goal_to_defend_pos = Vector3(0, 0, 30) # Defends the positive Z goal
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 4)
 
 [node name="BallContainer" type="Node3D" parent="."]
-comment = "Container for the ball instance"
 
 [node name="Ball" parent="BallContainer" instance=ExtResource("2_ball3d_scene")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 2) # Initial position for the ball
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
 
-
-[node name="GameCamera3D" type="Camera3D" parent="." node_paths=PackedStringArray("target_path")]
-transform = Transform3D(1, 0, 0, 0, 0.819152, 0.573576, 0, -0.573576, 0.819152, 0, 20, 15)
-projection = 0
+[node name="GameCamera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 20, 15)
 fov = 60.0
 near = 0.1
 far = 1000.0
-script = ExtResource("3_camera_script") # TODO: Update to camera_controller_simple.gd once confirmed
-target_path = NodePath("../Players/Player1")
-offset = Vector3(0, 12, 9) # Adjusted offset for a slightly better view
-look_at_offset = Vector3(0, 1.2, 0)
-smoothness = 7.0
-collision_layer_mask = 1
-collision_push_margin = 0.3
-comment = "Main game camera. Position and rotation might need adjustment based on final field size and player height."
+script = ExtResource("3_camera_script")
 
 [node name="UI" type="CanvasLayer" parent="."]
-comment = "For 2D UI elements like score, timer, etc. Minimized for training mode."
 
 [node name="InfoLabel" type="Label" parent="UI"]
 anchors_preset = 5
 anchor_left = 0.5
-anchor_top = 0.0
 anchor_right = 0.5
-anchor_bottom = 0.0
-offset_left = -250.0 # Wider to accommodate more text if needed
-offset_top = 20.0
+offset_left = -250.0
 offset_right = 250.0
-offset_bottom = 80.0 # Taller for multi-line text
-grow_horizontal = 2
-text = "Training Mode
-WASD: Move, Space: Jump, F: Kick
-R: Reset Ball (Coming Soon)"
+offset_bottom = 80.0
+text = "Training Mode - Goals: 0\\nWASD: Move, Space: Jump, K: Kick\\nR: Reset Ball"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
 
 [node name="Goal1_Area3D" type="Area3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, -29)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, -15)
 collision_layer = 0
 collision_mask = 4
-monitoring = true
 monitorable = false
 
 [node name="Goal1_CollisionShape3D" type="CollisionShape3D" parent="Goal1_Area3D"]
 shape = SubResource("BoxShape3D_goal")
 
 [node name="GoalPlaceholder1" type="CSGBox3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, -28)
-size = Vector3(8, 2.5, 1)
-material = StandardMaterial3D.new()
-material.albedo_color = Color(0.8, 0.8, 0.8, 1)
+transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 21, 1, 0)
+material_override = SubResource("GoalMaterial")
+size = Vector3(8, 2.5, 1.35889)
 
 [node name="Goal2_Area3D" type="Area3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, 29)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, 15)
 collision_layer = 0
 collision_mask = 4
-monitoring = true
 monitorable = false
 
 [node name="Goal2_CollisionShape3D" type="CollisionShape3D" parent="Goal2_Area3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21, 0, 0)
 shape = SubResource("BoxShape3D_goal")
 
-
 [node name="GoalPlaceholder2" type="CSGBox3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 28)
+transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, -21, 1, 0)
+material_override = SubResource("GoalMaterial")
 size = Vector3(8, 2.5, 1)
-material = StandardMaterial3D.new()
-material.albedo_color = Color(0.8, 0.8, 0.8, 1)

@@ -1,6 +1,6 @@
-[gd_scene load_steps=4 format=3 uid="uid://cak2m4n8p6q7r"]
+[gd_scene load_steps=5 format=3 uid="uid://cak2m4n8p6q7r"]
 
-[ext_resource type="Script" path="res://scripts/ball_3d/ball_3d_controller_simple.gd" id="1_script"]
+[ext_resource type="Script" path="res://scripts/ball_3d/ball_3d_controller.gd" id="1_script"]
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_ball"]
 radius = 0.11
@@ -9,9 +9,9 @@ radius = 0.11
 radius = 0.11
 height = 0.22
 
-[node name="Ball3D" type="RigidBody3D"]
-collision_layer = 4
-collision_mask = 13
+[node name="Ball3D" type="RigidBody3D" groups=["ball"]]
+collision_layer = 2
+collision_mask = 17
 script = ExtResource("1_script")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]

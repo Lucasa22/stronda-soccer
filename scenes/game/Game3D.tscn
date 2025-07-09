@@ -1,11 +1,14 @@
-[gd_scene load_steps=6 format=3 uid="uid://nl7ndwnwidqv"]
+[gd_scene load_steps=7 format=3 uid="uid://nl7ndwnwidqv"]
 
-[ext_resource type="PackedScene" uid="uid://c5y8qm7n2k1p5" path="res://scenes/player/Player3D.tscn" id="1_player3d_scene"]
-[ext_resource type="PackedScene" uid="uid://cak2m4n8p6q7r" path="res://scenes/ball/Ball3D.tscn" id="2_ball3d_scene"]
+[ext_resource type="PackedScene" uid="uid://bx7hxnpiqemhg" path="res://scenes/player/Player3D_Modular.tscn" id="1_player3d_scene"]
+[ext_resource type="PackedScene" uid="uid://cak2m4n8p6q7r" path="res://scenes/ball/Ball3D_Simple.tscn" id="2_ball3d_scene"]
 [ext_resource type="Script" path="res://scripts/game_3d/camera_controller_simple.gd" id="3_camera_script"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_pqoxt"]
 size = Vector2(100, 60)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_field"]
+size = Vector3(100, 0.1, 60)
 
 [sub_resource type="Environment" id="Environment_3dbqo"]
 ambient_light_source = 3
@@ -24,23 +27,27 @@ directional_shadow_max_distance = 200.0
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_3dbqo")
 
-[node name="Field" type="MeshInstance3D" parent="."]
+[node name="Field" type="StaticBody3D" parent="."]
+
+[node name="FieldMesh" type="MeshInstance3D" parent="Field"]
 mesh = SubResource("PlaneMesh_pqoxt")
 surface_material_override/0 = StandardMaterial3D.new()
 surface_material_override/0.albedo_color = Color(0.1, 0.5, 0.1, 1)
 
+[node name="FieldCollision" type="CollisionShape3D" parent="Field"]
+shape = SubResource("BoxShape3D_field")
 
 [node name="Players" type="Node3D" parent="."]
 comment = "Container for player instances"
 
 [node name="Player1" parent="Players" instance=ExtResource("1_player3d_scene")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 8) # Initial position for the player
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, GameConstants.FIELD_WIDTH/2, GameConstants.PLAYER_HEIGHT/2, GameConstants.FIELD_DEPTH/2)
 
 [node name="BallContainer" type="Node3D" parent="."]
 comment = "Container for the ball instance"
 
 [node name="Ball" parent="BallContainer" instance=ExtResource("2_ball3d_scene")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 2) # Initial position for the ball
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, GameConstants.FIELD_WIDTH/2, GameConstants.BALL_RADIUS + 0.1, GameConstants.FIELD_DEPTH/2)
 
 
 [node name="GameCamera3D" type="Camera3D" parent="." node_paths=PackedStringArray("target_path")]

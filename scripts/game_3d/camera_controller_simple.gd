@@ -12,8 +12,10 @@ var current_velocity: Vector3 = Vector3.ZERO
 var last_target_position: Vector3 = Vector3.ZERO
 
 func _ready():
+	print("CameraController: Starting _ready()")
 	# Wait for scene to be fully ready
 	call_deferred("setup_target")
+	print("CameraController: setup_target deferred")
 
 func setup_target():
 	if target_path:
@@ -83,3 +85,9 @@ func _reset_camera_position():
 	position_smoothness = 8.0
 	rotation_smoothness = 12.0
 	print("Camera position reset")
+
+func create_ball():
+	var ball_scene = preload("res://scenes/ball/Ball3D_Simple.tscn")
+	var ball_instance = ball_scene.instantiate()
+	ball_instance.transform.origin = Vector3(GameConstants.FIELD_WIDTH / 2, GameConstants.BALL_RADIUS + 0.1, GameConstants.FIELD_DEPTH / 2)
+	$BallContainer.add_child(ball_instance)

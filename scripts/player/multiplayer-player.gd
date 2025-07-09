@@ -34,6 +34,15 @@ func _ready():
 	# Adicionar ao grupo
 	add_to_group("players")
 	add_to_group("team_%d" % team)
+	
+	# Inicializar input map
+	input_map["kick"] = "kick"
+	input_map["jump"] = "jump"
+	input_map["sprint"] = "sprint"
+	input_map["move_left"] = "move_left"
+	input_map["move_right"] = "move_right"
+	input_map["move_up"] = "move_up"
+	input_map["move_down"] = "move_down"
 
 func setup_visual():
 	# Cor do jogador

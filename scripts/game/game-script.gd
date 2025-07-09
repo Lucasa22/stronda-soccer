@@ -206,7 +206,7 @@ func create_goals():
 
 func create_players():
 	# Instanciar cena do jogador 3D
-	var player_scene = preload("res://scenes/player/Player3D.tscn")
+	var player_scene = preload("res://scenes/player/Player3D_Modular.tscn")
 	
 	# Jogador 1 (Azul)
 	var player1 = player_scene.instantiate()
@@ -256,7 +256,7 @@ func create_player(pos: Vector3, color: Color, player_name: String) -> Node3D:
 
 func create_ball():
 	# Instanciar cena da bola 3D
-	var ball_scene = preload("res://scenes/ball/Ball3D.tscn")
+	var ball_scene = preload("res://scenes/ball/Ball3D_Simple.tscn")
 	var ball_instance = ball_scene.instantiate()
 	ball_instance.position = Vector3(field_width / 2, GameConstants.BALL_RADIUS + 5, field_height / 2)
 	ball.add_child(ball_instance)

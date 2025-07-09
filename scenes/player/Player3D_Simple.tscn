@@ -1,7 +1,5 @@
 [gd_scene load_steps=6 format=3 uid="uid://c5y8qm7n2k1p5"]
 
-[ext_resource type="Script" uid="uid://bltinay4rvgec" path="res://scripts/player_3d/player_3d_controller_simple.gd" id="1_script"]
-
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.4
 height = 1.8
@@ -18,7 +16,6 @@ radius = 0.8
 
 [node name="Player3D" type="CharacterBody3D"]
 collision_mask = 5
-script = ExtResource("1_script")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)

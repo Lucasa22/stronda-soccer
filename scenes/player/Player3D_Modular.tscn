@@ -1,6 +1,7 @@
-[gd_scene load_steps=16 format=3 uid="uid://bdytqhw42oycw"]
+[gd_scene load_steps=21 format=3 uid="uid://bdytqhw42oycw"]
 
-[ext_resource type="Script" uid="uid://dydbkmaxput6i" path="res://scripts/player_3d/player_3d_controller_modular.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://wy20gu4gkmxp" path="res://scripts/player_3d/player_animation_controller.gd" id="1_animation_controller"]
+[ext_resource type="Script" uid="uid://dpv1pc5e5rpj8" path="res://scripts/player_3d/player_3d_controller_modular.gd" id="1_script"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.35
@@ -43,14 +44,92 @@ albedo_color = Color(0.05, 0.05, 0.05, 1)
 size = Vector3(0.1, 0.08, 0.25)
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_kick"]
-radius = 0.4
+radius = 0.8
+
+[sub_resource type="Animation" id="Animation_idle"]
+resource_name = "idle"
+length = 2.0
+loop_mode = 1
+tracks/0/type = "rotation_3d"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("PlayerModel/Pelvis/Spine/Chest")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = PackedFloat32Array(0, 1, 0, 0, 0, 1, 1, 1, 0.017, 0, 0, 0.9999, 2, 1, 0, 0, 0, 1)
+
+[sub_resource type="Animation" id="Animation_kick"]
+resource_name = "kick"
+length = 0.6
+tracks/0/type = "rotation_3d"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("PlayerModel/Pelvis/RightHip/RightUpperLeg")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = PackedFloat32Array(0, 1, 0, 0, 0, 1, 0.15, 1, -0.6, 0, 0, 0.8, 0.25, 1, 0.8, 0, 0, 0.6, 0.6, 1, 0, 0, 0, 1)
+
+[sub_resource type="Animation" id="Animation_run"]
+resource_name = "run"
+length = 0.8
+loop_mode = 1
+tracks/0/type = "rotation_3d"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("PlayerModel/Pelvis/LeftHip/LeftUpperLeg")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = PackedFloat32Array(0, 1, 0.5, 0, 0, 0.866, 0.2, 1, 0, 0, 0, 1, 0.4, 1, -0.5, 0, 0, 0.866, 0.6, 1, 0, 0, 0, 1, 0.8, 1, 0.5, 0, 0, 0.866)
+tracks/1/type = "rotation_3d"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("PlayerModel/Pelvis/RightHip/RightUpperLeg")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = PackedFloat32Array(0, 1, -0.5, 0, 0, 0.866, 0.2, 1, 0, 0, 0, 1, 0.4, 1, 0.5, 0, 0, 0.866, 0.6, 1, 0, 0, 0, 1, 0.8, 1, -0.5, 0, 0, 0.866)
+tracks/2/type = "rotation_3d"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("PlayerModel/Pelvis/LeftHip/LeftUpperLeg/LeftLowerLeg")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = PackedFloat32Array(0, 1, 0, 0, 0, 1, 0.2, 1, 0.5, 0, 0, 0.866, 0.4, 1, 0, 0, 0, 1, 0.6, 1, 0, 0, 0, 1, 0.8, 1, 0, 0, 0, 1)
+tracks/3/type = "rotation_3d"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("PlayerModel/Pelvis/RightHip/RightUpperLeg/RightLowerLeg")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = PackedFloat32Array(0, 1, 0, 0, 0, 1, 0.2, 1, 0, 0, 0, 1, 0.4, 1, 0.5, 0, 0, 0.866, 0.6, 1, 0, 0, 0, 1, 0.8, 1, 0, 0, 0, 1)
+tracks/4/type = "rotation_3d"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("PlayerModel/Pelvis/Spine/Chest/LeftShoulder/LeftUpperArm")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = PackedFloat32Array(0, 1, -0.3, 0, 0, 0.955, 0.2, 1, 0, 0, 0, 1, 0.4, 1, 0.3, 0, 0, 0.955, 0.6, 1, 0, 0, 0, 1, 0.8, 1, -0.3, 0, 0, 0.955)
+tracks/5/type = "rotation_3d"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("PlayerModel/Pelvis/Spine/Chest/RightShoulder/RightUpperArm")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = PackedFloat32Array(0, 1, 0.3, 0, 0, 0.955, 0.2, 1, 0, 0, 0, 1, 0.4, 1, -0.3, 0, 0, 0.955, 0.6, 1, 0, 0, 0, 1, 0.8, 1, 0.3, 0, 0, 0.955)
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_player"]
+_data = {
+&"idle": SubResource("Animation_idle"),
+&"kick": SubResource("Animation_kick"),
+&"run": SubResource("Animation_run")
+}
 
 [node name="Player3D" type="CharacterBody3D"]
-collision_mask = 5
+collision_layer = 1
+collision_mask = 21
 script = ExtResource("1_script")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.875, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 shape = SubResource("CapsuleShape3D_player")
 
 [node name="PlayerModel" type="Node3D" parent="."]
@@ -90,7 +169,7 @@ material_override = SubResource("Material_Skin")
 mesh = SubResource("BoxMesh_UpperArm")
 
 [node name="LeftLowerArm" type="Node3D" parent="PlayerModel/Pelvis/Spine/Chest/LeftShoulder/LeftUpperArm"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.325, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.325, 0)
 
 [node name="LeftLowerArmMesh" type="MeshInstance3D" parent="PlayerModel/Pelvis/Spine/Chest/LeftShoulder/LeftUpperArm/LeftLowerArm"]
 material_override = SubResource("Material_Skin")
@@ -169,6 +248,14 @@ monitorable = false
 
 [node name="KickShape3D" type="CollisionShape3D" parent="PlayerModel/Pelvis/RightHip/RightUpperLeg/RightLowerLeg/RightFoot/KickArea3D"]
 shape = SubResource("SphereShape3D_kick")
+
+[node name="PlayerAnimationController" type="Node3D" parent="."]
+script = ExtResource("1_animation_controller")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+&"": SubResource("AnimationLibrary_player")
+}
 
 [node name="PlayerNameLabel3D" type="Label3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.1, 0)

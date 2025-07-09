@@ -16,9 +16,9 @@ var player_score: int = 0
 var ai_score: int = 0
 
 # Define initial positions (can be customized or made into export vars)
-var initial_player_position: Vector3 = Vector3(0, 1, 8)
-var initial_ball_position: Vector3 = Vector3(0, 0.5, 2)
-var center_field_ball_position: Vector3 = Vector3(0, 0.5, 0)
+var initial_player_position: Vector3 = Vector3(0, -0.035, 8)
+var initial_ball_position: Vector3 = Vector3(0, 0.6, 0)
+var center_field_ball_position: Vector3 = Vector3(0, 0.6, 0)
 
 
 func _ready():
