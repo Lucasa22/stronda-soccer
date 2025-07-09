@@ -62,7 +62,7 @@ shape = SubResource("BoxShape3D_field")
 [node name="Players" type="Node3D" parent="."]
 
 [node name="Player1" parent="Players" instance=ExtResource("1_player3d_scene")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 4)
 
 [node name="BallContainer" type="Node3D" parent="."]
 

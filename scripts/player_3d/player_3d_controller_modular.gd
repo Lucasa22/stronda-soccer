@@ -1,5 +1,8 @@
 extends CharacterBody3D
 
+# Preload the PlayerAnimationController class
+const PlayerAnimationController = preload("res://scripts/player_3d/player_animation_controller.gd")
+
 # Player movement constants - using GameConstants
 const SPEED = GameConstants.PLAYER_MOVE_SPEED
 const JUMP_VELOCITY = GameConstants.PLAYER_JUMP_VELOCITY
@@ -163,6 +166,9 @@ func _handle_player_input(delta: float):
 	input_direction.x = Input.get_axis("move_left", "move_right")
 	input_direction.z = Input.get_axis("move_forward", "move_backward")
 	
+	# Check for sprint input
+	var is_sprinting = Input.is_action_pressed("sprint")
+	
 	# Debug input
 	if input_direction.length() > 0:
 		print("Input detected: ", input_direction)
@@ -170,10 +176,21 @@ func _handle_player_input(delta: float):
 	# Apply movement with acceleration/deceleration
 	if input_direction != Vector3.ZERO:
 		input_direction = input_direction.normalized()
-		velocity.x = move_toward(velocity.x, input_direction.x * SPEED, ACCELERATION * delta)
-		velocity.z = move_toward(velocity.z, input_direction.z * SPEED, ACCELERATION * delta)
+		var current_speed = SPEED * (1.5 if is_sprinting else 1.0)  # Sprint multiplier
+		velocity.x = move_toward(velocity.x, input_direction.x * current_speed, ACCELERATION * delta)
+		velocity.z = move_toward(velocity.z, input_direction.z * current_speed, ACCELERATION * delta)
 		
 		print("Player velocity: ", velocity)
+		
+		# Update animation controller with movement and sprint
+		if animation_controller:
+			animation_controller.set_moving(true, velocity)
+			animation_controller.set_sprinting(is_sprinting)
+		else:
+			# Fallback to old animation system
+			if current_animation_state != "run":
+				current_animation_state = "run"
+				_play_running_animation()
 		
 		# Player rotation - make player face movement direction
 		var target_direction = Vector3(input_direction.x, 0, input_direction.z)
@@ -203,15 +220,6 @@ func _handle_player_input(delta: float):
 				# Apply smooth rotation
 				var new_rotation = current_rotation + angle_diff * ROTATION_SPEED * delta
 				rotation.y = new_rotation
-		
-		# Update animation controller with movement
-		if animation_controller:
-			animation_controller.set_moving(true, velocity)
-		else:
-			# Fallback to old animation system
-			if current_animation_state != "run":
-				current_animation_state = "run"
-				_play_running_animation()
 	else:
 		# More gentle deceleration when no input
 		velocity.x = move_toward(velocity.x, 0, DECELERATION * delta)
@@ -220,6 +228,7 @@ func _handle_player_input(delta: float):
 		# Update animation controller with no movement
 		if animation_controller:
 			animation_controller.set_moving(false, velocity)
+			animation_controller.set_sprinting(false)
 		else:
 			# Fallback to old animation system
 			if current_animation_state != "idle":
